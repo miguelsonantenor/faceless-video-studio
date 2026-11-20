@@ -358,6 +358,14 @@ Plus a contact sheet stored per render (QA-3). Marking ready or approving with a
 
 ### WP6: MCP server and stdio proxy (L) — MCP-1–11, SEE-1, SEE-6, SEE-7
 
+> **Status, 2026-11-20: done** for the server, the proxy, 16 of the 22 P1 tools and the 4 prompts. The other 6 (`fvs_projects_list`, `fvs_project_review`, `fvs_project_restore`, `fvs_batch_run`, `fvs_assets_list`, `fvs_asset_import`) need the WP7 services and are added there. 263 tests pass, 1 skipped. Code is in `src/fvs/mcp/` (`registry`, `tools`, `guide`, `server`, `proxy`). Notes:
+> - The JSON-RPC layer is written directly (no SDK on the server side): stateless Streamable HTTP, one JSON answer per POST, 202 for notifications, 405 for GET. Protocol versions 2025-11-25, 2025-06-18 and 2025-03-26. The official `mcp` SDK is a dev dependency only, used by the tests as the client (stdio through `fvs mcp`).
+> - Progress: `fvs_job_get` with a progress token, from a client that accepts `text/event-stream`, streams `notifications/progress` and then the result. Every other answer is plain JSON.
+> - Output schemas are one shared loose schema (`summary` required); the per-tool data is documented in the descriptions. Tightening them per tool is left for the agent evaluation in WP9.
+> - One activity line per call: the registry counts lines the service wrote during the call (a context variable in `ActivityLog`) and adds its own only if there were none, including for failed calls.
+> - The 20 s limit (MCP-3) is kept by the services' own inline-or-job decisions; the registry logs any call over 20 s. The image tools were measured on real media in `tests/media/test_see.py` (AC-11).
+> - `fvs mcp` forwards messages in parallel (so a waiting `fvs_job_get` never blocks other calls), starts `python -m fvs serve` detached when the core is down, and answers `CORE_UNAVAILABLE` with "run fvs doctor" when it cannot.
+
 **Server** (in the core, Streamable HTTP at `/mcp`, JSON only):
 - A tool registry with one decorator that adds: input/output schema from Pydantic, `#3` → ID resolution, the 20 s timeout guard (spills into a job), result shaping (summary + JSON text + structuredContent; image tools: images + JSON text only), size enforcement (< 1 MB; downscale/recompress images), paging (20 + `next_cursor`), `response_format`, error shaping `{code, message, fix, example}`, idempotency keys, and one activity-feed line.
 - The 22 P1 tools (section 4.2), each a thin wrapper over the services. Highlights:

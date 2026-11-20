@@ -26,6 +26,7 @@ class ErrorCode(StrEnum):
     CUE_UNRESOLVED = "CUE_UNRESOLVED"
     RENDER_FAILED = "RENDER_FAILED"
     PATH_NOT_ALLOWED = "PATH_NOT_ALLOWED"
+    CORE_UNAVAILABLE = "CORE_UNAVAILABLE"
     # Not in DS 8.6, needed by the core itself:
     SCRIPT_INVALID = "SCRIPT_INVALID"  # markup or field rules (SCR-1, SCR-3)
     WRONG_STATE = "WRONG_STATE"  # the lifecycle (DS 7) does not allow the step now

@@ -21,7 +21,7 @@ def serve(
     dev_origin: list[str] = typer.Option(  # noqa: B008
         [], help="Extra allowed Origin for web app development, e.g. http://localhost:5173"),
 ) -> None:
-    """Start the core: API, web app, job workers (and /mcp from WP6), on 127.0.0.1."""
+    """Start the core: API, /mcp, web app and job workers, on 127.0.0.1."""
     import uvicorn
 
     from fvs.api import create_app
@@ -121,9 +121,10 @@ def inspect(clip: str, transcript: bool = typer.Option(True, help="Include speec
 
 @app.command()
 def mcp() -> None:
-    """The stdio proxy Claude Desktop starts (arrives in WP6)."""
-    typer.echo("fvs mcp is not built yet (WP6).", err=True)
-    raise typer.Exit(2)
+    """The stdio MCP server Claude Desktop starts; it forwards to the core's /mcp."""
+    from fvs.mcp.proxy import run
+
+    raise typer.Exit(run())
 
 
 def main() -> None:

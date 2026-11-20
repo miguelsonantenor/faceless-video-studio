@@ -148,6 +148,34 @@ def test_captions_outside_a_moved_safe_zone_fail(score: Core, rendered: dict) ->
     assert qa.check_safe_zone(boxes, tight, captions_on=True).status == "fail"
 
 
+@pytest.mark.parametrize("name,args", [
+    ("fvs_frames", {"source": "spec", "times": [0.5, 1.5, 2.5], "safe_zone": True}),
+    ("fvs_frames", {"source": "render", "count": 12}),
+    ("fvs_storyboard", {}),
+    ("fvs_listen", {"target": "render"}),
+    ("fvs_clip_inspect", {"clip": 1}),
+])
+def test_ac11_image_tools_through_mcp(score: Core, rendered: dict, name: str,
+                                      args: dict) -> None:
+    import asyncio
+    import time
+
+    from fvs.mcp.registry import MAX_RESULT_BYTES
+    from fvs.mcp.tools import build_registry
+
+    if name != "fvs_clip_inspect":
+        args = {**args, "project": rendered["n"]}
+    started = time.monotonic()
+    result = asyncio.run(build_registry().call(score, name, args))
+    assert time.monotonic() - started < 20
+    assert result["isError"] is False, result
+    *images, text = result["content"]
+    assert images and all(i["type"] == "image" and i["mimeType"] == "image/jpeg"
+                          for i in images)
+    assert "summary" in json.loads(text["text"]) and "structuredContent" not in result
+    assert len(json.dumps(result)) < MAX_RESULT_BYTES
+
+
 def _listen_ok(seen: Seen) -> None:
     assert len(seen.images) == 1 and _img(seen.images[0]).size == (1024, 300)
 

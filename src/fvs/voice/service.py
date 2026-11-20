@@ -90,7 +90,7 @@ class VoiceService:
         timings = json.loads(Path(row["timings_path"]).read_text(encoding="utf-8"))
         return dict(row) | {"timings": timings} if timings["cache_keys"] == keys else None
 
-    def _quota(self) -> dict[str, Any]:
+    def quota_status(self) -> dict[str, Any]:
         try:
             q = self.client.quota()
         except FvsError as exc:
@@ -135,7 +135,7 @@ class VoiceService:
                 "chars_to_bill": 0 if existing else to_bill,
                 "chars_reused": reused, "up_to_date": existing is not None,
                 "over_budget": not existing and to_bill > budget["left"],
-                "budget": budget, "quota": self._quota(),
+                "budget": budget, "quota": self.quota_status(),
                 "summary": (f"The voiceover for {ref} is up to date; nothing to bill."
                             if existing else
                             f"{ref}: {len(missing)} of {len(sentences)} sentences to make, "
@@ -318,6 +318,6 @@ class VoiceService:
             "sentences": [{"i": s["i"], "start": s["start"], "end": s["end"]}
                           for s in timings["sentences"]],
             "chars_billed": billed, "chars_reused": reused,
-            "budget": self.budget.status(), "quota": self._quota(),
+            "budget": self.budget.status(), "quota": self.quota_status(),
             "state": proj["state"], "summary": summary,
         }

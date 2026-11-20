@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Literal
 
 from fvs.events import EventBus
@@ -9,6 +12,20 @@ from fvs.store import Database
 from fvs.timeutil import now_iso
 
 Source = Literal["claude", "creator", "engine"]
+
+# Lines added during one tool call, so the MCP layer writes its own line only when the
+# service wrote none (one line per call, MCP-11).
+_lines: ContextVar[list[int] | None] = ContextVar("fvs_activity_lines", default=None)
+
+
+@contextmanager
+def counting_lines() -> Iterator[list[int]]:
+    lines = [0]
+    token = _lines.set(lines)
+    try:
+        yield lines
+    finally:
+        _lines.reset(token)
 
 
 class ActivityLog:
@@ -40,6 +57,9 @@ class ActivityLog:
                 "summary": summary,
             }
         self.bus.publish({"type": "activity", "entry": entry})
+        counter = _lines.get()
+        if counter is not None:
+            counter[0] += 1
         return entry
 
     def recent(self, limit: int = 50, before_id: int | None = None) -> list[dict[str, Any]]:

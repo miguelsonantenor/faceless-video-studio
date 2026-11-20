@@ -1,8 +1,8 @@
 """The Core API for the web app (REV-1–5): REST plus a live event stream.
 
-WP0 covers health, status, settings, doctor, activity, jobs and events. Project, review
-and asset routes come with their work packages; the MCP server mounts at ``/mcp`` in WP6
-behind the same security middleware.
+Health, status, settings, doctor, voices, budget, activity, jobs and events; project,
+review and asset routes come with their work packages. The MCP server answers at
+``/mcp`` behind the same security middleware.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from fvs.api.security import COOKIE_NAME, SecurityMiddleware, token_matches
 from fvs.core import Core
 from fvs.doctor import run_doctor, worst
 from fvs.errors import ErrorCode, FvsError
+from fvs.mcp.server import add_mcp_routes
 
 SSE_HEARTBEAT_S = 15.0
 
@@ -174,6 +175,7 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache"})
 
+    add_mcp_routes(app, core)
     app.add_middleware(SecurityMiddleware, token=core.token, port=core.config.port,
                        extra_origins=extra_origins)
     return app
