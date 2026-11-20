@@ -113,7 +113,7 @@ def test_state_render_row_command_log_and_reuse(rcore: Core, rendered: dict) -> 
 
 def test_nfr_p1_render_time(rendered: dict) -> None:
     # NFR-P1: at most 60 s for a 60 s video, so at most the video's own length.
-    assert rendered["seconds"] <= max(10.0, rendered["duration_s"]), rendered
+    assert rendered["render_seconds"] <= max(10.0, rendered["duration_s"]), rendered
 
 
 def _band_db(path: str, start: float, length: float, freq: int) -> float:

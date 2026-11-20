@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from fvs.compile.ass import build_ass
 from fvs.compile.graph import Graph, f
 from fvs.settings import SafeZoneSettings
 from fvs.spec.models import EditSpec, Reframe
@@ -64,7 +65,7 @@ class RenderPlan:
 # ---- stage 2: video per segment ----------------------------------------------------------
 
 
-def _reframe(g: Graph, label: str, r: Reframe) -> str:
+def reframe(g: Graph, label: str, r: Reframe) -> str:
     if r.mode == "blur_fill":
         a, b = g.chain([label], ["split"], 2, "s")
         bg = g.one([a], [f("scale", W, H, force_original_aspect_ratio="increase"),
@@ -80,7 +81,7 @@ def _reframe(g: Graph, label: str, r: Reframe) -> str:
         f("crop", W, H, x=f"(iw-ow)*{r.focus_x:g}", y=f"(ih-oh)*{r.focus_y:g}")], "rf")
 
 
-def _motion(motion: str, length: float) -> list[str]:
+def motion_filters(motion: str, length: float) -> list[str]:
     a, n = MOTION_AMOUNT, f"{length:.4f}"
     if motion in ("zoom_in", "zoom_out"):
         grow = f"t/{n}" if motion == "zoom_in" else f"(1-t/{n})"
@@ -99,8 +100,8 @@ def _segment_video(g: Graph, idx: int, seg: dict[str, Any], spec: EditSpec) -> s
     if seg["speed"] != 1.0:
         pre.append(f"setpts=PTS/{seg['speed']:g}")
     pre.append(f("fps", FPS))
-    label = _reframe(g, g.one([f"{idx}:v"], pre, "v"), spec.reframe)
-    post = _motion(seg["motion"], length)
+    label = reframe(g, g.one([f"{idx}:v"], pre, "v"), spec.reframe)
+    post = motion_filters(seg["motion"], length)
     if seg["loop"]:
         frames = max(1, int((seg["src_out"] - seg["src_in"]) / seg["speed"] * FPS))
         post.append(f("loop", loop=-1, size=frames, start=0))
@@ -150,13 +151,13 @@ def duck_volume(windows: list[tuple[float, float]], duck_db: float) -> str:
     return f"1-{1 - gain:.5f}*{env}"
 
 
-def _audio(g: Graph, spec: EditSpec, timeline: dict[str, Any], inputs: Inputs,
-           voice_idx: int, music_idx: int | None) -> str:
+def audio_stems(g: Graph, spec: EditSpec, timeline: dict[str, Any], inputs: Inputs,
+                voice_idx: int, music_idx: int | None) -> dict[str, str]:
+    """Each track as it goes into the mix (after ducking): voice, original, music."""
     total = timeline["duration_s"]
     windows = speech_windows(inputs.timings)
-    voice = g.one([f"{voice_idx}:a"], [AUDIO_FMT, "apad", f("atrim", duration=total),
-                                       "asetpts=PTS-STARTPTS"], "voice")
-    mix = [voice]
+    stems = {"voice": g.one([f"{voice_idx}:a"], [AUDIO_FMT, "apad", f("atrim", duration=total),
+                                                 "asetpts=PTS-STARTPTS"], "voice")}
 
     orig = spec.audio.original
     if orig.mode != "mute" and any(inputs.clips[s["clip"]]["has_audio"]
@@ -179,7 +180,7 @@ def _audio(g: Graph, spec: EditSpec, timeline: dict[str, Any], inputs: Inputs,
             original = g.one([original], [f("volume", volume=duck_volume(windows,
                                                                          orig.duck_db),
                                             eval="frame")], "orig")
-        mix.append(original)
+        stems["original"] = original
 
     music = spec.audio.music
     if music is not None and music_idx is not None:
@@ -192,8 +193,13 @@ def _audio(g: Graph, spec: EditSpec, timeline: dict[str, Any], inputs: Inputs,
                            d=music.fade_out))
         if music.duck:
             chain.append(f("volume", volume=duck_volume(windows, -14.0), eval="frame"))
-        mix.append(g.one([f"{music_idx}:a"], chain, "music"))
+        stems["music"] = g.one([f"{music_idx}:a"], chain, "music")
+    return stems
 
+
+def _audio(g: Graph, spec: EditSpec, timeline: dict[str, Any], inputs: Inputs,
+           voice_idx: int, music_idx: int | None) -> str:
+    mix = list(audio_stems(g, spec, timeline, inputs, voice_idx, music_idx).values())
     if len(mix) == 1:
         return mix[0]
     return g.one(mix, [f("amix", inputs=len(mix), normalize=0, duration="first")], "mix")
@@ -223,7 +229,7 @@ def parse_loudnorm(stderr: str) -> dict[str, Any]:
 # ---- the whole plan ----------------------------------------------------------------------
 
 
-def _input_args(timeline: dict[str, Any], spec: EditSpec, inputs: Inputs, *,
+def input_args(timeline: dict[str, Any], spec: EditSpec, inputs: Inputs, *,
                 audio_only: bool) -> tuple[list[str], int, int | None]:
     args: list[str] = []
     for seg in timeline["segments"]:
@@ -242,22 +248,25 @@ def _input_args(timeline: dict[str, Any], spec: EditSpec, inputs: Inputs, *,
     return args, voice_idx, music_idx
 
 
+def caption_ass(spec: EditSpec, inputs: Inputs, total: float) -> str | None:
+    """The caption and hook layer as ASS text, or None when there is nothing to show."""
+    hook = spec.hook.text if spec.hook.text is not None else inputs.hook_text
+    if spec.captions.mode == "off" and not hook:
+        return None
+    return build_ass(timings=inputs.timings, captions=spec.captions, style=inputs.style,
+                     font=inputs.font, hook_text=hook, hook_seconds=spec.hook.seconds,
+                     end_s=total, safe=inputs.safe)
+
+
 def compile_render(spec: EditSpec, timeline: dict[str, Any], inputs: Inputs, *,
                    ass_name: str, out_name: str,
                    measured: dict[str, Any] | None = None) -> RenderPlan:
     total = timeline["duration_s"]
-    hook = spec.hook.text if spec.hook.text is not None else inputs.hook_text
-    ass_text = None
-    if spec.captions.mode != "off" or hook:
-        from fvs.compile.ass import build_ass
-
-        ass_text = build_ass(timings=inputs.timings, captions=spec.captions,
-                             style=inputs.style, font=inputs.font, hook_text=hook,
-                             hook_seconds=spec.hook.seconds, end_s=total, safe=inputs.safe)
+    ass_text = caption_ass(spec, inputs, total)
 
     # Pass 1: audio only, measure loudness.
     ga = Graph()
-    in_args, v_idx, m_idx = _input_args(timeline, spec, inputs, audio_only=True)
+    in_args, v_idx, m_idx = input_args(timeline, spec, inputs, audio_only=True)
     measured_out = ga.one([_audio(ga, spec, timeline, inputs, v_idx, m_idx)],
                           [loudnorm(spec, None)], "aout")
     measure = ["-hide_banner", "-nostats", *in_args, "-filter_complex", ga.render(),
@@ -265,7 +274,7 @@ def compile_render(spec: EditSpec, timeline: dict[str, Any], inputs: Inputs, *,
 
     # Pass 2: the render.
     g = Graph()
-    in_args, v_idx, m_idx = _input_args(timeline, spec, inputs, audio_only=False)
+    in_args, v_idx, m_idx = input_args(timeline, spec, inputs, audio_only=False)
     segs = [_segment_video(g, i, s, spec) for i, s in enumerate(timeline["segments"])]
     video = _join(g, segs, timeline["segments"])
     if ass_text is not None:

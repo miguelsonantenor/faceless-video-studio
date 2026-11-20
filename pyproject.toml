@@ -15,6 +15,7 @@ dependencies = [
     "pillow>=13.0.0",
     "faster-whisper>=1.2.1",
     "numpy>=2.5.5",
+    "fonttools>=4.50",
 ]
 
 [project.scripts]

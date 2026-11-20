@@ -329,6 +329,12 @@ WP1 and WP2 can run in parallel; the web app (WP8) can start against mocked API 
 
 ### WP5: Perception and QA (M) — SEE-1–7, QA-1–4
 
+> **Status, 2026-11-20: done** (QA-4, the override note, lands with review in WP7). 244 tests pass, 1 skipped. Code is in `src/fvs/see/` (`stills`, `images`, `listen`, `transcripts`, `service`) and `src/fvs/qa/` (`checks`, `runner`). Notes:
+> - Spec stills render only the segment under `t`: input seek to the matching source time (after loop and hold), the motion clock set to the segment's own time, then the caption layer at the output time, scaled to 288×512. During a fade the still shows the incoming shot, not the blend. 6 stills take well under 3 s (NFR-P2).
+> - `listen` meters every track in one FFmpeg run (`ebur128` frame metadata to files, momentary loudness) and shifts the stems by the loudness gain the render applied, so they line up with the mix. Transcripts are cached per file under `cache/transcripts`, so `fvs_listen` after a render's QA costs nothing; transcribing over 15 s becomes a `listen` job.
+> - QA runs inside the render job after the file is written; a check that cannot run never loses the render (the report says so). Captions-in-safe-zone renders the ASS layer alone on a transparent canvas (`subtitles:alpha=1`, `alphaextract`) at up to 40 caption moments. Missing glyphs use `fontTools` (new dependency) on the font file actually used, including the Windows fallback.
+> - The compiler now exposes `audio_stems`, `input_args` and `caption_ass` so stills and listening reuse the render's own graph code.
+
 **Perception service**
 - `frames(source=clip|render|spec, times | range+count, safe_zone, captions)`: ≤ 6 frames at ≤ 512 px each, more → one contact sheet ≤ 1024 px. Safe-zone outline drawn with Pillow. Frame-accurate seek (`-ss` after `-i` on renders, or `select=eq(n,N)`) for AC-13.
 - `storyboard(spec|render)`: one tile per segment (first frame after reframing), time range, clip, source time, first words of the sentence; ≤ 12 tiles per image, paged; image + JSON table.

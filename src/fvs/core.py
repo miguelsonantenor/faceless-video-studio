@@ -24,6 +24,8 @@ from fvs.plan.planner import Planner
 from fvs.projects import Projects
 from fvs.render.service import RenderService, install_fonts
 from fvs.script.service import ScriptService
+from fvs.see.service import Perception
+from fvs.see.transcripts import Transcripts
 from fvs.settings import SettingsService, effective_renders_at_once
 from fvs.spec.service import SpecService
 from fvs.spec.templates import Templates
@@ -63,6 +65,7 @@ class Core:
     specs: SpecService
     planner: Planner
     renders: RenderService
+    perception: Perception
 
     @classmethod
     def open(cls, home: Path | None = None, *, configure_logs: bool = True) -> Core:
@@ -118,15 +121,21 @@ class Core:
         fonts_dir = folders.assets / "fonts"
         install_fonts(Path(str(resources.files("fvs") / "assets_bundled" / "fonts")),
                       fonts_dir)
-        renders = RenderService(db, projects=projects, specs=specs, templates=templates,
-                                settings=settings, jobs=jobs, activity=activity,
+        transcripts = Transcripts(whisper, folders.workspace / "cache" / "transcripts")
+        renders = RenderService(db, projects=projects, scripts=scripts, specs=specs,
+                                templates=templates, settings=settings, jobs=jobs,
+                                activity=activity, transcripts=transcripts,
                                 fonts_dir=fonts_dir)
+        perception = Perception(db, library=library, projects=projects, scripts=scripts,
+                                specs=specs, renders=renders, settings=settings,
+                                transcripts=transcripts, jobs=jobs,
+                                workspace=folders.workspace)
         return cls(home=home, config=config, token=token, db=db, bus=bus, activity=activity,
                    settings=settings, jobs=jobs, guard=guard, library=library,
                    whisper=whisper, analyzer=analyzer, analysis=analysis,
                    projects=projects, profiles=profiles, scripts=scripts, budget=budget,
                    voice=voice, templates=templates, specs=specs, planner=planner,
-                   renders=renders)
+                   renders=renders, perception=perception)
 
     def start(self) -> None:
         self.jobs.recover()

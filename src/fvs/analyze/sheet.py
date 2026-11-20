@@ -52,7 +52,7 @@ def grab_frame(path: Path, t: float, size: tuple[int, int],
         return None
 
 
-def _label(img: Image.Image, text: str) -> None:
+def label_image(img: Image.Image, text: str) -> None:
     draw = ImageDraw.Draw(img)
     font = ImageFont.load_default(size=16)
     left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
@@ -75,7 +75,7 @@ def make_sheet(path: Path, out: Path, *, width: int, height: int, duration_s: fl
     sheet = Image.new("RGB", (sheet_w, sheet_h), BG)
     for i, t in enumerate(times):
         frame = grab_frame(path, t, (tw, th), cancelled) or Image.new("RGB", (tw, th), (60, 0, 0))
-        _label(frame, fmt_time(t))
+        label_image(frame, fmt_time(t))
         x = GAP + (i % COLS) * (tw + GAP)
         y = GAP + (i // COLS) * (th + GAP)
         sheet.paste(frame, (x, y))

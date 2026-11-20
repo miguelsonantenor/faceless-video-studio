@@ -26,9 +26,13 @@ from fvs.analyze.probe import probe
 from fvs.atomic import atomic_path, write_text_atomic
 from fvs.compile.compiler import Inputs, compile_render, parse_loudnorm
 from fvs.errors import ErrorCode, FvsError
-from fvs.jobs import JobContext, JobQueue
+from fvs.jobs import JobCancelled, JobContext, JobQueue
+from fvs.logs import get_logger
 from fvs.media.tools import Result, run_tool
 from fvs.projects import Projects, next_state
+from fvs.qa.runner import run_qa
+from fvs.script.service import ScriptService
+from fvs.see.transcripts import Transcripts
 from fvs.settings import SettingsService
 from fvs.spec.service import SpecService
 from fvs.spec.templates import Templates
@@ -36,6 +40,7 @@ from fvs.store import Database
 from fvs.timeutil import now_iso
 
 FONT_EXTS = (".ttf", ".otf")
+log = get_logger("fvs.render")
 
 
 def font_family(fonts_dir: Path, style: dict[str, Any]) -> tuple[str, str | None]:
@@ -72,11 +77,14 @@ def classify(res: Result, log_path: Path) -> FvsError:
 
 
 class RenderService:
-    def __init__(self, db: Database, *, projects: Projects, specs: SpecService,
-                 templates: Templates, settings: SettingsService, jobs: JobQueue,
-                 activity: ActivityLog, fonts_dir: Path) -> None:
+    def __init__(self, db: Database, *, projects: Projects, scripts: ScriptService,
+                 specs: SpecService, templates: Templates, settings: SettingsService,
+                 jobs: JobQueue, activity: ActivityLog, transcripts: Transcripts,
+                 fonts_dir: Path) -> None:
         self.db = db
         self.projects = projects
+        self.scripts = scripts
+        self.transcripts = transcripts
         self.specs = specs
         self.templates = templates
         self.settings = settings
@@ -183,7 +191,7 @@ class RenderService:
         def on_line(line: str) -> None:
             if line.startswith("out_time_us=") and line[12:].isdigit():
                 done = int(line[12:]) / 1e6
-                ctx.progress(0.1 + 0.88 * min(1.0, done / total),
+                ctx.progress(0.1 + 0.7 * min(1.0, done / total),
                              f"Rendering: {done:.0f} of {total:.0f} s")
 
         with atomic_path(final) as tmp:
@@ -198,26 +206,49 @@ class RenderService:
                 raise classify(res, log_path)
 
         info = probe(final)
+        render_seconds = round(time.monotonic() - started, 1)
+        report = self._qa(final=final, folder=folder,
+                          ass_name=ass_name if plan.ass is not None else None,
+                          ass_text=plan.ass, spec=spec, timeline=timeline, inputs=inputs,
+                          proj=proj, ctx=ctx)
         seconds = round(time.monotonic() - started, 1)
         render_id = uuid.uuid4().hex
         command_log = {"measure": subprocess.list2cmdline(measure.args),
                        "render": subprocess.list2cmdline(res.args),
-                       "stderr_tail": res.stderr_tail(20), "seconds": seconds,
+                       "stderr_tail": res.stderr_tail(20), "seconds": render_seconds,
                        "log": str(log_path)}
         with self.db.transaction() as conn:
             conn.execute(
                 "INSERT INTO renders (id, project_id, spec_hash, path, duration_s, bytes, "
-                "command_log, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "qa_report, contact_sheet_path, command_log, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (render_id, proj["id"], spec_hash, str(final), info.duration_s,
-                 final.stat().st_size, json.dumps(command_log), now_iso()))
+                 final.stat().st_size, json.dumps(report), report.get("contact_sheet"),
+                 json.dumps(command_log), now_iso()))
             row = self.projects.get_row(proj["id"], conn)
             self.projects.advance(conn, row, "render_done", fields={"render_id": render_id},
                                   stale_remove=("render",))
         return {"project": proj["number"], "render_id": render_id, "path": str(final),
                 "duration_s": info.duration_s, "bytes": final.stat().st_size,
-                "seconds": seconds, "warnings": warnings,
+                "seconds": seconds, "render_seconds": render_seconds, "warnings": warnings,
+                "qa": {"status": report["status"], "summary": report["summary"]},
                 "summary": f"Rendered #{proj['number']}: a {info.duration_s:.1f} s video "
-                           f"in {seconds:.0f} s."}
+                           f"in {render_seconds:.0f} s. {report['summary']}"}
+
+    def _qa(self, *, proj: dict[str, Any], ctx: JobContext, **kw: Any) -> dict[str, Any]:
+        """The QA report; a check that cannot run never loses the finished render."""
+        sentences = [s["spoken"] for s in self.scripts.sentences_for_voice(proj)]
+        try:
+            return run_qa(**kw, fonts_dir=self.fonts_dir, transcripts=self.transcripts,
+                          sentences=sentences, cancelled=lambda: ctx.cancelled,
+                          progress=lambda frac, note: ctx.progress(0.8 + 0.2 * frac, note))
+        except JobCancelled:
+            raise
+        except Exception as exc:  # noqa: BLE001 - reported in the QA result instead
+            log.warning("qa_failed", project=proj["number"], error=str(exc))
+            return {"status": "warn", "checks": [], "contact_sheet": None,
+                    "summary": f"QA could not run ({exc}); check the render with fvs_frames "
+                               "and fvs_listen."}
 
     @staticmethod
     def _log(path: Path, results: list[Result]) -> None:
