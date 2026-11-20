@@ -1,14 +1,18 @@
-"""Batches, review and export on real media (BAT-1, EXP-1, CAP-7, AC-12, AC-14)."""
+"""Batches, review, export and the web app's media routes on real media (BAT-1, EXP-1,
+CAP-7, AC-12, AC-14, REV-2)."""
 
 from __future__ import annotations
 
+import io
 import json
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from PIL import Image
 
+from fvs.api import create_app
 from fvs.core import Core
 from tests.conftest import wait_for
 from tests.fake_elevenlabs import FakeElevenLabs, sine_mp3
@@ -134,3 +138,24 @@ def test_ac14_three_projects_from_one_clip_with_their_own_ranges(lcore: Core) ->
         starts.append(timeline["segments"][0]["src_in"])
         assert proj["series"] == "Long" and proj["part"] == k + 1
     assert starts == [5.0, 60.0, 120.0]
+
+
+def test_rev2_the_web_app_plays_and_shows_the_render(lcore: Core, batch: dict) -> None:
+    n = batch["good"]
+    proj = lcore.projects.get_row(n)
+    size = Path(lcore.perception.render_row(proj)["path"]).stat().st_size
+    with TestClient(create_app(lcore, manage_lifecycle=False),
+                    base_url="http://127.0.0.1:8787") as c:
+        c.headers["Authorization"] = f"Bearer {lcore.token}"
+        part = c.get(f"/api/renders/{proj['render_id']}/video",
+                     headers={"Range": "bytes=0-1023"})  # the player seeks with ranges
+        assert part.status_code == 206 and len(part.content) == 1024
+        assert part.headers["content-range"] == f"bytes 0-1023/{size}"
+        sheet = c.get(f"/api/renders/{proj['render_id']}/sheet.jpg")
+        assert sheet.status_code == 200 and sheet.content[:2] == b"\xff\xd8"
+        thumb = c.get(f"/api/projects/{n}/thumbs/0.jpg")
+        assert thumb.status_code == 200
+        assert Image.open(io.BytesIO(thumb.content)).size == (144, 256)
+        assert c.get(f"/api/projects/{n}/thumbs/0.jpg").content == thumb.content  # cached
+        spec = c.get(f"/api/projects/{n}/spec").json()
+        assert spec["timeline"]["segments"]

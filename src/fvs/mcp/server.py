@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -111,6 +112,7 @@ def add_mcp_routes(app: FastAPI, core: Core) -> None:
 
     @app.post("/mcp", include_in_schema=False)
     async def mcp_post(request: Request) -> Response:
+        app.state.mcp_last_call = time.monotonic()  # "Claude connected" in the web app
         try:
             msg = json.loads(await request.body())
         except (json.JSONDecodeError, UnicodeDecodeError):

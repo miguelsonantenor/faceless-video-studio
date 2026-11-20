@@ -14,10 +14,11 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 from fastapi import Body, FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 
 from fvs import __version__
 from fvs.api.security import COOKIE_NAME, SecurityMiddleware, token_matches
+from fvs.api.web import add_web_routes
 from fvs.core import Core
 from fvs.doctor import run_doctor, worst
 from fvs.errors import ErrorCode, FvsError
@@ -84,13 +85,6 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
         resp = RedirectResponse("/", status_code=303)
         resp.set_cookie(COOKIE_NAME, core.token, httponly=True, samesite="strict", path="/")
         return resp
-
-    @app.get("/", include_in_schema=False)
-    async def index() -> HTMLResponse:
-        return HTMLResponse(
-            "<!doctype html><title>Faceless Video Studio</title>"
-            "<p>The FVS core is running. The web app arrives in WP8.</p>"
-        )
 
     # ---- status ----------------------------------------------------------------------
 
@@ -189,6 +183,7 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
                                  headers={"Cache-Control": "no-cache"})
 
     add_mcp_routes(app, core)
+    add_web_routes(app, core)  # last: it ends with the web app's catch-all route
     app.add_middleware(SecurityMiddleware, token=core.token, port=core.config.port,
                        extra_origins=extra_origins)
     return app

@@ -8,5 +8,5 @@ build/
 *.egg-info/
 *.fvs-tmp
 node_modules/
-web/dist/
+*.tsbuildinfo
 tests/fixtures/media/

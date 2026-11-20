@@ -406,6 +406,14 @@ Plus a contact sheet stored per render (QA-3). Marking ready or approving with a
 
 ### WP8: Web app (L) — REV-1–5
 
+> **Status, 2026-11-20: done.** 291 tests pass, 1 skipped. Code: `web/` (Vite 7, React 19, TypeScript; no UI library, a 20-line router), built into `src/fvs/webapp/` (487 KB, shipped inside the Python package, so running FVS never needs Node), and the routes in `src/fvs/api/web.py`. Notes:
+> - Screens: Dashboard, Project, Review queue, Settings, and read-only Templates and Assets. Every screen reloads from the one SSE stream; bursts of job progress refresh at most every 250 ms.
+> - Fonts are the Latin subsets of Inter and Space Grotesk from `@fontsource`, bundled with the app (no requests to the internet).
+> - The key is tested against ElevenLabs before it is saved; only its last 4 characters leave the core. "Add to Claude Desktop" merges into the existing config and keeps a `.bak`; invalid JSON there is left untouched.
+> - Static files get explicit content types: Windows' registry can map `.js` to `text/plain`, which browsers refuse for module scripts.
+> - The Playwright walkthrough was replaced by a manual walkthrough in the desktop app's browser pane on a demo home with real renders (dashboard, project with player, safe zone, storyboard and checks, approve from the queue, settings validation and save, system check). Route tests: `tests/contract/test_web.py`; Range requests, contact sheet and thumbnails on a real render: `tests/media/test_lifecycle.py`.
+> - `npm run dev` in `web/` proxies to a core started with `fvs serve --dev-origin http://localhost:5173`.
+
 Build from `docs/mockups/*.html` (pixel reference) and `docs/screens/*.dc.html` (component source). Shared layout: top bar with the **F** logo, nav (Dashboard, Review queue + count, Templates, Assets, Settings), and the "Core running · Claude connected" status dot.
 
 | Screen | Contents |
