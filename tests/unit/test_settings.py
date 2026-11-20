@@ -7,6 +7,7 @@ import pytest
 from fvs.core import Core
 from fvs.errors import ErrorCode, FvsError
 from fvs.settings import SettingsService
+from tests.conftest import capture_events
 
 
 def test_defaults_match_the_plan(core: Core) -> None:
@@ -20,9 +21,8 @@ def test_defaults_match_the_plan(core: Core) -> None:
         108, 320, 60, 120)
 
 
-def test_update_saves_logs_and_publishes(core: Core) -> None:
-    events: list[dict] = []
-    core.bus.add_listener(events.append)
+def test_update_saves_logs_and_publishes(core: Core, monkeypatch: pytest.MonkeyPatch) -> None:
+    events = capture_events(core, monkeypatch)
     core.settings.update({"voice.daily_budget_chars": 30_000})
     assert core.settings.get().voice.daily_budget_chars == 30_000
     line = core.activity.recent(1)[0]

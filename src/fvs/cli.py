@@ -59,6 +59,49 @@ def token() -> None:
     typer.echo(ensure_token())
 
 
+@app.command("whisper-download")
+def whisper_download() -> None:
+    """Download the Whisper speech model (small, int8, about 500 MB) into ~/.fvs/models."""
+    from fvs.analyze.transcribe import Whisper
+    from fvs.config import fvs_home
+
+    w = Whisper(fvs_home() / "models")
+    if w.available:
+        typer.echo(f"Already installed: {w.model_path()}")
+        return
+    typer.echo("Downloading the Whisper 'small' model from Hugging Face…")
+    typer.echo(f"Installed: {w.download()}")
+
+
+@app.command()
+def scan(subfolders: bool = typer.Option(False, help="Also scan subfolders.")) -> None:
+    """Register new clips from the input folder."""
+    from fvs.core import Core
+
+    core = Core.open(configure_logs=False)
+    result = core.library.scan(subfolders=subfolders, source="creator")
+    typer.echo(result.summary())
+    for c in result.new:
+        typer.echo(f"  #{c['number']}  {c['file_name']}  {c['duration_s']:.1f} s  "
+                   f"{c['width']}×{c['height']}  {'sound' if c['has_audio'] else 'no sound'}")
+    for s in result.skipped:
+        typer.echo(f"  skipped {s['file']}: {s['reason']}")
+
+
+@app.command()
+def inspect(clip: str, transcript: bool = typer.Option(True, help="Include speech.")) -> None:
+    """Analyse one clip (by number or ID) and print the result as JSON."""
+    import json
+
+    from fvs.analyze.analyzer import EXTRAS
+    from fvs.core import Core
+
+    core = Core.open(configure_logs=False)
+    extras = [e for e in EXTRAS if transcript or e != "transcript"]
+    result = core.analysis.inspect(clip, extras, inline_limit_s=float("inf"))
+    typer.echo(json.dumps(result, indent=1, ensure_ascii=False))
+
+
 @app.command()
 def mcp() -> None:
     """The stdio proxy Claude Desktop starts (arrives in WP6)."""

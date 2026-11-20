@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -11,9 +12,9 @@ import pytest
 from fvs.atomic import TMP_SUFFIX
 from fvs.core import Core
 from fvs.errors import ErrorCode, FvsError
-from fvs.jobs import JobContext, JobQueue
+from fvs.jobs import JobCancelled, JobContext, JobQueue
 from fvs.timeutil import now_iso
-from tests.conftest import wait_for
+from tests.conftest import capture_events, wait_for
 
 
 def _state(core: Core, job_id: str) -> str:
@@ -40,17 +41,16 @@ def running(core: Core) -> Core:
         return {"summary": f"Echoed {ctx.payload.get('x')}.", "x": ctx.payload.get("x")}
 
     def fail(ctx: JobContext) -> dict:
-        raise FvsError(ErrorCode.RENDER_FAILED, "FFmpeg ran out of disk space.",
-                       "Free some space and render again.")
+        raise FvsError(ErrorCode.CLIP_UNREADABLE, "The clip could not be read.",
+                       "Re-export it as MP4 and try again.")
 
     def crash(ctx: JobContext) -> dict:
         raise ValueError("unexpected")
 
     def slow(ctx: JobContext) -> dict:
-        while not ctx.wait_cancelled(0.02):
-            pass
-        ctx.check_cancelled()
-        return {}
+        while not ctx.cancelled:
+            time.sleep(0.02)
+        raise JobCancelled()
 
     for kind, fn in {"echo": echo, "fail": fail, "crash": crash, "slow": slow}.items():
         core.jobs.register(kind, fn)
@@ -58,16 +58,17 @@ def running(core: Core) -> Core:
     return core
 
 
-def test_job_runs_to_done_with_result_progress_and_activity(running: Core) -> None:
-    events: list[dict] = []
-    running.bus.add_listener(events.append)
+def test_job_runs_to_done_with_result_progress_and_activity(
+        running: Core, monkeypatch: pytest.MonkeyPatch) -> None:
+    events = capture_events(running, monkeypatch)
     job = running.jobs.submit("echo", {"x": 7})
     wait_for(lambda: _state(running, job["id"]) == "done")
     done = running.jobs.get(job["id"])
     assert done["result"] == {"summary": "Echoed 7.", "x": 7}
     assert done["progress"] == 1.0
     assert any(e["type"] == "job_progress" and e["note"] == "halfway" for e in events)
-    assert running.activity.recent(1)[0]["summary"] == "Echoed 7."
+    # The activity line is written just after the job is marked done.
+    wait_for(lambda: running.activity.recent(1)[0]["summary"] == "Echoed 7.")
 
 
 def test_failure_sets_and_success_clears_the_project_flag(running: Core) -> None:
@@ -75,9 +76,9 @@ def test_failure_sets_and_success_clears_the_project_flag(running: Core) -> None
     job = running.jobs.submit("fail", project_id="p1")
     wait_for(lambda: _state(running, job["id"]) == "failed")
     err = running.jobs.get(job["id"])["error"]
-    assert err["code"] == "RENDER_FAILED" and "Free some space" in err["fix"]
+    assert err["code"] == "CLIP_UNREADABLE" and "Re-export" in err["fix"]
     failed, last_error = _project_flag(running)
-    assert failed == 1 and json.loads(last_error)["code"] == "RENDER_FAILED"
+    assert failed == 1 and json.loads(last_error)["code"] == "CLIP_UNREADABLE"
 
     job2 = running.jobs.submit("echo", project_id="p1")
     wait_for(lambda: _state(running, job2["id"]) == "done")
@@ -153,10 +154,9 @@ def test_stopping_mid_job_leaves_it_for_recovery(home: Path) -> None:
 
     def slow(ctx: JobContext) -> dict:
         started.set()
-        while not ctx.wait_cancelled(0.02):
-            pass
-        ctx.check_cancelled()
-        return {}
+        while not ctx.cancelled:
+            time.sleep(0.02)
+        raise JobCancelled()
 
     core.jobs.register("slow", slow)
     core.jobs.start()

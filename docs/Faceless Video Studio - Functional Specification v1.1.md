@@ -52,6 +52,7 @@ Links are in section 9.4.
 | --- | --- | --- |
 | 1.0 | Nov 20, 2026 | First version |
 | 1.1 | Nov 20, 2026 | After an editing-task review and a consistency review: projects separate from clips; narration-timed edits; tools for Claude to see and hear; script markup; sentence-level voice; one render per version; batch recovery; verification and traceability (section 8); security of the local MCP address |
+| 1.1 | Nov 20, 2026 | Added inspiration sets (section 4.14, INS-1–4, `fvs_inspiration`), all P2 |
 
 ## 2. Overall description
 
@@ -322,9 +323,20 @@ There are 99 functional requirements in 15 groups. Priority uses MoSCoW: Must, S
 | REV-7 | Compare two versions side by side | Should | P2 |
 | REV-8 | Template editor with a live preview frame | Could | P5 |
 
+### 4.14 Inspiration (INS)
+
+The creator shows Claude what they want with example videos instead of describing it. FVS measures what it can (pacing, speech, sound) and gives Claude pictures for the rest (framing, colour, caption look). Inspiration videos are references only: their footage never appears in a render.
+
+| ID | Requirement | Priority | Phase |
+| --- | --- | --- | --- |
+| INS-1 | Keep named inspiration sets (for example one per channel), each a read-only folder of example videos the creator likes, with an optional note per video on what to take from it; inspiration videos are analysed but never used as footage | Should | P2 |
+| INS-2 | Build a style profile from a set: video length, shot length and cuts per second, time to the first word, hook length, words per minute, sentence length, how videos end (call to action), loudness, and a look sheet of frames from each video; give the median and range across the set, and the value for each video | Should | P2 |
+| INS-3 | Return the chosen set's profile and look sheet with the guide, and use its values as targets for script length and fit, planner pacing and shot length | Should | P2 |
+| INS-4 | After a render, compare it with the profile and report differences as notes (for example average shot 2.6 s against 1.8 s in the examples); never a failed check | Could | P2 |
+
 ## 5. MCP interface (what Claude can do)
 
-Claude gets 24 tools and 4 prompts, and no resources. Every step of UC-1 to UC-6 is a tool call, so Claude never needs a shell, a browser or the ElevenLabs connector. The set follows Anthropic's guidance for agent tools: tools that each do a whole job, a shared `fvs_` prefix, results Claude can act on, and errors that say how to fix them.
+Claude gets 25 tools and 4 prompts, and no resources. Every step of UC-1 to UC-6 is a tool call, so Claude never needs a shell, a browser or the ElevenLabs connector. The set follows Anthropic's guidance for agent tools: tools that each do a whole job, a shared `fvs_` prefix, results Claude can act on, and errors that say how to fix them.
 
 ### 5.1 What Claude cannot do, and what replaces it
 
@@ -342,7 +354,7 @@ Tools that take a clip or project accept its number (`3`) or its ID. Tools marke
 
 | Tool | What it does | Main inputs | Returns | Covers | Phase |
 | --- | --- | --- | --- | --- | --- |
-| `fvs_guide` | Loads everything Claude needs to start | optional sections | Workflow, script markup, Edit Spec schema, templates, caption styles, voices, budget, quota left, settings summary | SEE-1, SCR-6 | P1 |
+| `fvs_guide` | Loads everything Claude needs to start | optional sections | Workflow, script markup, Edit Spec schema, templates, caption styles, voices, budget, quota left, settings summary; from P2 the style guide and inspiration profile | SEE-1, SCR-6, INS-3 | P1 |
 | `fvs_library_scan` | Finds and registers clips | folder (default from settings), subfolders | Clips: number, title, length, resolution, has sound, projects using it | LIB-1–2 (LIB-3 in P2) | P1 |
 | `fvs_projects_list` | Lists projects and where each stands | state, failed only, needs attention, cursor, `response_format` | Number, title, state, failure flag, stale parts, review notes | BAT-3, REV-3 | P1 |
 | `fvs_project_create` | Creates a project | title, clips, series, part, template | Project number and slug | PRJ-1–3 | P1 |
@@ -366,6 +378,7 @@ Tools that take a clip or project accept its number (`3`) or its ID. Tools marke
 | `fvs_settings` | Reads or changes settings (never the API key) | settings to change, or none | Current settings | REV-4 | P1 |
 | `fvs_template_save` | Creates or changes a template | name, defaults, `dry_run` | Template version, projects affected and their differences | EDT-11 | P2 |
 | `fvs_show` | Shows the creator a render or storyboard inside Claude Desktop | project, view (player or storyboard) | MCP App view, plus a web app link | SEE-8 | P2 |
+| `fvs_inspiration` | Reads or refreshes an inspiration set's style profile | set (default from settings), refresh, notes per video | Profile (median, range, per video), look sheet; or a job ID while analysing | INS-1–3 | P2 |
 
 ### 5.3 Rules every tool must follow
 
@@ -467,6 +480,7 @@ Each requirement group is verified by one main method: Test (automated), Demonst
 | QA | Test | QA service | `fvs_job_get`, `fvs_project_get` | AC-3, AC-7 |
 | BAT | Demonstration | Job queue | `fvs_batch_run`, `fvs_job_get`, `fvs_projects_list` | AC-1, AC-10 |
 | REV | Demonstration | Web app | none | One walkthrough per screen at each gate |
+| INS | Test | Analyzer, Planner, QA service | `fvs_inspiration`, `fvs_guide`, `fvs_edit_plan` | Media tests at the P2 gate |
 | MCP rules | Test | MCP adapter | all | AC-9, AC-11, contract tests |
 | NFR | Analysis | Sections 10 and 11 of the design | all | Measured in the media and contract tests |
 

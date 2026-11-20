@@ -24,6 +24,13 @@ def db(tmp_path: Path) -> Database:
     return d
 
 
+def tables(db: Database) -> set[str]:
+    with db.connect() as conn:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' "
+                            "AND name NOT LIKE 'sqlite_%'").fetchall()
+    return {r["name"] for r in rows}
+
+
 def _project(conn: sqlite3.Connection, pid: str = "p1", number: int = 1) -> None:
     conn.execute(
         "INSERT INTO projects (id, number, title, slug, created_at, updated_at) "
@@ -31,13 +38,13 @@ def _project(conn: sqlite3.Connection, pid: str = "p1", number: int = 1) -> None
 
 
 def test_all_ds_tables_exist(db: Database) -> None:
-    assert set(db.tables()) == DS_TABLES
+    assert tables(db) == DS_TABLES
     assert db.schema_version() == 1
 
 
 def test_migrate_is_idempotent(db: Database) -> None:
     assert db.migrate() == 1
-    assert set(db.tables()) == DS_TABLES
+    assert tables(db) == DS_TABLES
 
 
 def test_wal_mode(db: Database) -> None:

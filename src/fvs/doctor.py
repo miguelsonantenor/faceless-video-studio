@@ -118,9 +118,24 @@ def check_fonts() -> Check:
 
 def check_whisper() -> Check:
     if importlib.util.find_spec("faster_whisper") is None:
-        return Check("Whisper model", "warn", "faster-whisper is not installed yet",
-                     "It is added with clip analysis (WP1).")
-    return Check("Whisper model", "ok", "faster-whisper installed (model loads on first use)")
+        return Check("Whisper model", "fail", "faster-whisper is not installed",
+                     "Reinstall FVS with its dependencies (`uv sync`).")
+    import ctranslate2
+
+    from fvs.analyze.transcribe import CPU, MODEL_SIZE, Whisper, best_device
+    from fvs.config import fvs_home
+
+    whisper = Whisper(fvs_home() / "models")
+    if whisper.model_path() is None:
+        return Check("Whisper model", "warn", f"The {MODEL_SIZE} model is not downloaded",
+                     "Run `fvs whisper-download` once (about 500 MB) to transcribe speech.")
+    device = best_device()
+    detail = f"Installed ({MODEL_SIZE}), runs on the {device.label}"
+    if device is CPU and ctranslate2.get_cuda_device_count() > 0:
+        return Check("Whisper model", "warn",
+                     f"{detail}: an NVIDIA GPU is present but its CUDA libraries are not",
+                     "Run `uv sync --extra gpu` (about 1.25 GB) to transcribe about 7× faster.")
+    return Check("Whisper model", "ok", detail)
 
 
 def check_elevenlabs(config: Config, *, online: bool) -> Check:

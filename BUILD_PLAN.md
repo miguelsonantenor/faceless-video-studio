@@ -8,7 +8,7 @@ Built from the docs in `docs/`: `Faceless Video Studio - Functional Specificatio
 
 ## 0. What we are building, in one paragraph
 
-A local Python service (the **core**) that owns a SQLite database, a job queue, FFmpeg, faster-whisper and the ElevenLabs connection. It exposes **24 MCP tools + 4 prompts** at `http://127.0.0.1:8787/mcp`, plus a thin **stdio proxy** (`fvs mcp`) that Claude Desktop launches. Claude never runs commands; it writes a versioned **Edit Spec** (JSON) whose shots are cued to narration sentences, and the core compiles it into one FFmpeg render. Claude "sees" through frames and storyboards and "hears" through transcripts and loudness charts. A **React web app** on the same port lets the creator watch Claude work, review renders, approve or reject them, and change settings. Approving writes an export package; posting to TikTok stays manual in v1.
+A local Python service (the **core**) that owns a SQLite database, a job queue, FFmpeg, faster-whisper and the ElevenLabs connection. It exposes **25 MCP tools + 4 prompts** at `http://127.0.0.1:8787/mcp`, plus a thin **stdio proxy** (`fvs mcp`) that Claude Desktop launches. Claude never runs commands; it writes a versioned **Edit Spec** (JSON) whose shots are cued to narration sentences, and the core compiles it into one FFmpeg render. Claude "sees" through frames and storyboards and "hears" through transcripts and loudness charts. A **React web app** on the same port lets the creator watch Claude work, review renders, approve or reject them, and change settings. Approving writes an export package; posting to TikTok stays manual in v1.
 
 ---
 
@@ -140,10 +140,10 @@ The diagram's transitions, as the state machine will implement them:
 
 **Failure is a flag**, not a state: `failed` + `last_error` on the project; the state is kept, and a retry resumes from it.
 
-### 4.2 The 24 tools by phase
+### 4.2 The 25 tools by phase
 
 P1 (22): `fvs_guide, fvs_library_scan, fvs_projects_list, fvs_project_create, fvs_project_get, fvs_clip_inspect, fvs_frames, fvs_storyboard, fvs_listen, fvs_script_save, fvs_voiceover_generate ($), fvs_edit_plan, fvs_edit_save, fvs_render, fvs_batch_run ($), fvs_job_get, fvs_job_cancel, fvs_project_review, fvs_project_restore, fvs_assets_list, fvs_asset_import, fvs_settings`
-P2 (2): `fvs_template_save`, `fvs_show` (MCP Apps)
+P2 (3): `fvs_template_save`, `fvs_show` (MCP Apps), `fvs_inspiration` (section 6.1)
 Prompts (P1): `process_folder`, `revise_video`, `review_queue`, `resume_batch`
 
 ### 4.3 Hard rules every tool must meet (MCP-1 … MCP-11)
@@ -203,6 +203,17 @@ WP1 and WP2 can run in parallel; the web app (WP8) can start against mocked API 
 ---
 
 ### WP1: Library and clip analysis (M) — LIB-1, LIB-2, ANA-1–7
+
+> **Status, 2026-11-20: done.** 86 tests pass (including real-speech transcription with the downloaded model), ruff is clean, and vulture finds no unused code beyond framework entry points. Code: `fvs/library.py`, `fvs/analyze/` (`probe`, `detect`, `sheet`, `transcribe`, `analyzer`, `service`), `fvs/media/tools.py`; CLI `fvs scan`, `fvs inspect N`, `fvs whisper-download`. Notes:
+> - The clip hash is BLAKE2b-256 (stdlib), cached by path, size and modified time.
+> - Scenes, black and frozen stretches, and loudness come from **one** FFmpeg pass. On this machine the 3-minute clip takes 2.8 s, against NFR-P4's limit of 30 s.
+> - `AnalysisService.inspect` works inline when the estimate is ≤ 15 s; otherwise it starts one `analyze` job (never a duplicate). This is what `fvs_clip_inspect` will wrap in WP6.
+> - Whisper (`small`, int8) is never downloaded implicitly; `fvs whisper-download` fetches it once (464 MB into `~/.fvs/models`). Until it is installed, transcripts come back as `available: false` with that fix.
+> - FVS decodes audio for Whisper with its own FFmpeg (16 kHz mono samples), not faster-whisper's PyAV path. That path broke with PyAV 19.
+> - Whisper runs on an NVIDIA GPU (float16) when the optional `gpu` extra is installed (`uv sync --extra gpu`: NVIDIA's cuBLAS and cuDNN wheels, about 1.25 GB), and falls back to the CPU (int8) otherwise or if loading on the GPU fails. On 61 s of speech the RTX 3060 took 17 s and the CPU 129 s, with identical text; the job estimate uses 3× real time on the GPU and 0.45× on the CPU. `fvs doctor` says which one is used and warns when a GPU is present without its libraries.
+> - Code hygiene: only code something uses is kept. Error codes are added by the work package that raises them, and `uvx vulture src` is part of the check before each commit.
+> - Test clips are synthetic stand-ins for the 7 acceptance clips, plus a text-to-speech clip, built by `tests/media/make_clips.py` into `tests/fixtures/media/` (git-ignored).
+> - Extra error codes beyond DS 8.6: `CLIP_UNREADABLE`, `MEDIA_TOOL_MISSING`, `WHISPER_MODEL_MISSING`.
 
 **Build**
 - `scan(folder, subfolders)`: `.mp4 .mov .m4v .mkv .webm`; open files read-only only. A clip ID is a full-file hash (BLAKE3 or xxh3-128), cached by `(path, size, mtime)`. The `clips.state` column (active, changed, missing) is created now, but detecting changed or missing clips and flagging their projects is **LIB-3, Should, P2**; P1 only registers new clips.
@@ -384,10 +395,48 @@ Scope and gates from DS section 11.2; requirement IDs from `requirements.csv`.
 | Phase | Scope (requirement IDs) | Gate to leave the phase | Main work |
 |---|---|---|---|
 | **P1 Core pipeline and agent tools** | All P1 rows of `requirements.csv` (section 5) | AC-1 to AC-15 pass | WP0–WP9 |
-| **P2 Templates and polish** | LIB-3 detect changed or missing clips, ANA-8 letterbox, SCR-6 channel style guide, EDT-11 templates + `fvs_template_save` with dry-run diff, AUD-5 music library with mood tags and licenses, OVL-2 text overlays, OVL-3 logo, OVL-4 cover text, OVL-5 image overlays, EXP-2 AI-label reminder, REV-6 creator edits script or captions, REV-7 side-by-side compare, SEE-8 `fvs_show` in-chat player (MCP Apps, web link fallback) | A template change re-plans only unexported projects, with a correct diff (UC-5) | Overlay compiler stage; template versioning and diff; music library UI |
+| **P2 Templates and polish** | LIB-3 detect changed or missing clips, ANA-8 letterbox, SCR-6 channel style guide, EDT-11 templates + `fvs_template_save` with dry-run diff, AUD-5 music library with mood tags and licenses, OVL-2 text overlays, OVL-3 logo, OVL-4 cover text, OVL-5 image overlays, EXP-2 AI-label reminder, REV-6 creator edits script or captions, REV-7 side-by-side compare, SEE-8 `fvs_show` in-chat player (MCP Apps, web link fallback), INS-1–4 inspiration sets + `fvs_inspiration` (section 6.1) | A template change re-plans only unexported projects, with a correct diff (UC-5) | Overlay compiler stage; template versioning and diff; music library UI; style profiles |
 | **P3 Advanced editing** | ANA-9 silences, SCR-7 two-voice scripts, EDT-9 zoom to point / freeze / speed, EDT-10 region blur, EDT-12 seamless loop, named crossfade styles (rest of EDT-8), AUD-6 original sound at full level, AUD-7 sound effects | Agent evaluation passes again with the new edit options | New schema fields + one compiler stage change each (NFR-M2) |
 | **P4 Quality and speed** | RND-6 hardware encoding with libx264 fallback (on Windows: `h264_nvenc` → `h264_qsv` → `h264_amf`, one retry with libx264 on failure), VO-8 pronunciation dictionaries | Render time with hardware encoding ≤ 20 s (NFR-P1) | Encoder probing in doctor; benchmark suite |
 | **P5 Extras, as needed** | LIB-4 folder watching, ANA-10 subject tracking for crop, OVL-6 progress bar and end card, EXP-3 TikTok draft upload, REV-8 template editor with live preview | (none) | TikTok developer app; tracking model |
+
+### 6.1 Inspiration sets (P2) — INS-1–4, `fvs_inspiration` (M)
+
+The creator drops videos they like into a folder, and Claude works from what those videos have in common instead of from a written description. FVS measures what it can and shows Claude pictures of the rest. It depends only on WP1 (analysis), WP3 (planner), WP5 (QA) and WP6 (`fvs_guide`), so it can start as soon as P1 is done.
+
+**Folders and storage**
+- `folders.inspiration` in `config.toml`, default `~/FVS/inspiration`. Each subfolder is one set, for example `~/FVS/inspiration/storytime/` and `~/FVS/inspiration/facts/`. The path guard gets a new read-only area, `INSPIRATION`, treated like the input folder (LIB-2): FVS never writes there.
+- Tables (new migration): `inspiration_sets (id, name, folder, created_at)` and `inspiration_videos (set_id, content_hash, path, note, added_at)`. The note is the creator's "what I like here" ("the hook", "the fast cuts", "the captions"), set in the web app or through `fvs_inspiration`.
+- **Never footage, by construction**: inspiration videos are not rows in `clips`, so they have no clip number and no project or Edit Spec can refer to them. They stay on the creator's PC and are never uploaded.
+- Setting `defaults.inspiration_set` (empty = none) picks the set Claude uses; `fvs_project_create` takes an optional `inspiration` to use a different set for one project.
+
+**The style profile (INS-2)**: built from the WP1 analysis cache by content hash, so nothing is decoded twice and a video that is also a clip is analysed once. The transcript runs on the GPU when there is one (WP1).
+
+| Measure | From |
+|---|---|
+| Video length | probe |
+| Shot length, cuts per second | scene changes |
+| Time to the first word, words per minute, sentence length | transcript word timings |
+| Hook: words and seconds of the first sentence | transcript |
+| Ending: the last sentence's text, so Claude sees how calls to action are worded | transcript |
+| Share of the video with speech (spots music-only examples) | transcript |
+| Integrated loudness | loudness pass |
+| Look sheet: 3 frames per video (start, middle, near the end), up to 12 videos per sheet ≤ 1024 px, paged beyond that | contact-sheet code |
+
+Each measure is given as the median and min–max range across the set, plus the value for each video with its note. The profile is cached as `cache/inspiration/<set>/<fingerprint>.json`, where the fingerprint is a hash of the sorted content hashes, the notes and `ANALYZER_VERSION`. Adding, removing or re-noting a video builds a new profile. Building a profile follows ANA-7: if the missing analysis would take longer than the inline limit, `fvs_inspiration` returns a job ID.
+
+What it cannot measure: caption font and animation, music choice, transition style, colour grade. Claude judges those from the look sheet. No OCR of captions.
+
+**How Claude uses it (INS-3)**
+- `fvs_guide` gains an `inspiration` section: the concise profile, the notes and the look sheet image.
+- Script: the profile's words per minute replaces the default speaking rate in the length estimate and `fit` (SCR-4). The target length still comes from the creator's settings (`video.target_*`, section 1). If the examples' median length is outside that range, the guide says so, so Claude can mention it to the creator instead of silently changing it.
+- Planner: the median shot length (clamped to 0.8–6 s) becomes the target shot length, so a long sentence gets several shots; the hook length is the target for the first sentence.
+
+**After a render (INS-4)**: QA adds `notes` (info only, never one of the 8 checks) comparing the render with the profile range: length, average shot length, words per minute, time to the first word, loudness. Example: "Average shot 2.6 s; your examples are 1.4–2.2 s."
+
+**Web app**: Settings → Inspiration lists the sets and their videos with thumbnails, a note field per video, and the default set.
+
+**Tests**: a set of synthetic clips with cuts at known times gives the expected median shot length; a speech clip gives the expected words per minute; adding a video changes the fingerprint; nothing in a project or spec can name an inspiration video; FVS never writes to the inspiration folder.
 
 ---
 
@@ -422,6 +471,7 @@ Scope and gates from DS section 11.2; requirement IDs from `requirements.csv`.
 
 - Priorities and phases in this plan were checked against `docs/requirements.csv`; the lifecycle against the Mermaid diagram in DS section 7; the roadmap against the DS section 11.2 table. An earlier draft read them from the PDFs and had these wrong, now fixed: LIB-3 (changed or missing clips) is P2, not P1; folder watching is LIB-4 (P5), not LIB-3; AUD-4 (music with start point, loop and fades) is Must P1, not P2; EDT-4 (patches, hash versions) and EDT-6 (reframe) are Must P1, not P2; P3's IDs are EDT-9 (zoom to point, freeze, speed) and EDT-10 (region blur), not EDT-8/EDT-9; SCR-6 (style guide) is P2, so `fvs_guide` returns it only from P2.
 - When a requirement is added or changes, update `requirements.csv` first and this plan second. WP9 includes a traceability check that every P1 row of the CSV is covered by a work package.
+- Inspiration sets (INS-1–4, `fvs_inspiration`, P2) were added at the creator's request after v1.1: rows in `requirements.csv`, section 4.14 and the tool table in the FS, and section 6.1 here. The DS has no section for them yet; section 6.1 is their design until it does.
 - The roadmap has no dates (DS 11.2). The open questions it waited on are now settings (section 1), so they no longer block scheduling.
 
 ---

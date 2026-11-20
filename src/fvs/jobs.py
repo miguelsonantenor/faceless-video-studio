@@ -31,7 +31,7 @@ log = get_logger("fvs.jobs")
 
 
 class JobCancelled(Exception):
-    """Raised inside a handler (via ``ctx.check_cancelled()``) to stop cleanly."""
+    """Raised inside a handler, once ``ctx.cancelled`` is true, to stop cleanly."""
 
 
 class JobContext:
@@ -40,21 +40,12 @@ class JobContext:
         self.job_id: str = row["id"]
         self.kind: str = row["kind"]
         self.project_id: str | None = row["project_id"]
-        self.attempt: int = row["attempt"]
         self.payload: dict[str, Any] = json.loads(row["payload"] or "{}")
         self._cancel = cancel_event
 
     @property
     def cancelled(self) -> bool:
         return self._cancel.is_set()
-
-    def check_cancelled(self) -> None:
-        if self._cancel.is_set():
-            raise JobCancelled()
-
-    def wait_cancelled(self, timeout: float) -> bool:
-        """Sleep up to ``timeout`` seconds; returns True early if cancel was asked."""
-        return self._cancel.wait(timeout)
 
     def progress(self, fraction: float, note: str | None = None) -> None:
         self._queue._set_progress(self.job_id, max(0.0, min(1.0, fraction)), note)
@@ -190,15 +181,19 @@ class JobQueue:
         project_id: str | None = None,
         parent_id: str | None = None,
         idempotency_key: str | None = None,
+        reuse_done: bool = True,
     ) -> dict[str, Any]:
+        """Queue a job. With an ``idempotency_key``, an equal job that is queued, running
+        or (when ``reuse_done``) done is returned instead of starting a new one."""
         at = now_iso()
+        states = ("queued", "running", "done") if reuse_done else ("queued", "running")
         with self.db.transaction() as conn:
             if idempotency_key is not None:
+                marks = ",".join("?" * len(states))
                 existing = conn.execute(
                     "SELECT * FROM jobs WHERE kind = ? AND idempotency_key = ? "
-                    "AND state IN ('queued', 'running', 'done') "
-                    "ORDER BY created_at DESC LIMIT 1",
-                    (kind, idempotency_key),
+                    f"AND state IN ({marks}) ORDER BY created_at DESC LIMIT 1",
+                    (kind, idempotency_key, *states),
                 ).fetchone()
                 if existing is not None:
                     return public_job(existing)

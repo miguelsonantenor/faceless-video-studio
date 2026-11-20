@@ -14,15 +14,11 @@ from pathlib import Path
 TMP_SUFFIX = ".fvs-tmp"
 
 
-def temp_path_for(final: Path) -> Path:
-    return final.with_name(final.name + TMP_SUFFIX)
-
-
 @contextmanager
 def atomic_path(final: Path) -> Iterator[Path]:
     """Yield a temp path; on success rename it to ``final``, on error delete it."""
     final.parent.mkdir(parents=True, exist_ok=True)
-    tmp = temp_path_for(final)
+    tmp = final.with_name(final.name + TMP_SUFFIX)
     tmp.unlink(missing_ok=True)
     try:
         yield tmp

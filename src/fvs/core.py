@@ -10,9 +10,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from fvs.activity import ActivityLog
+from fvs.analyze.analyzer import Analyzer
+from fvs.analyze.service import AnalysisService
+from fvs.analyze.transcribe import Whisper
 from fvs.config import Config, ensure_config, ensure_token, fvs_home
 from fvs.events import EventBus
 from fvs.jobs import JobQueue
+from fvs.library import Library
 from fvs.logs import configure_logging, get_logger, register_secret
 from fvs.pathguard import PathGuard
 from fvs.settings import SettingsService, effective_renders_at_once
@@ -35,6 +39,10 @@ class Core:
     settings: SettingsService
     jobs: JobQueue
     guard: PathGuard
+    library: Library
+    whisper: Whisper
+    analyzer: Analyzer
+    analysis: AnalysisService
 
     @classmethod
     def open(cls, home: Path | None = None, *, configure_logs: bool = True) -> Core:
@@ -62,8 +70,14 @@ class Core:
         jobs = JobQueue(db, bus, activity,
                         workers=effective_renders_at_once(settings.get()),
                         workspace=folders.workspace)
+        guard = PathGuard(folders)
+        library = Library(db, guard, activity)
+        whisper = Whisper(home / "models")
+        analyzer = Analyzer(folders.workspace / "cache", whisper)
+        analysis = AnalysisService(library, analyzer, jobs, activity)
         return cls(home=home, config=config, token=token, db=db, bus=bus, activity=activity,
-                   settings=settings, jobs=jobs, guard=PathGuard(folders))
+                   settings=settings, jobs=jobs, guard=guard, library=library,
+                   whisper=whisper, analyzer=analyzer, analysis=analysis)
 
     def start(self) -> None:
         self.jobs.recover()

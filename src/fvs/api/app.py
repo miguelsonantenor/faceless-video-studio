@@ -29,7 +29,6 @@ _STATUS = {
     ErrorCode.PATH_NOT_ALLOWED: 403,
     ErrorCode.SETTINGS_INVALID: 422,
     ErrorCode.SPEC_INVALID: 422,
-    ErrorCode.STATE_INVALID: 409,
     ErrorCode.INTERNAL: 500,
 }
 

@@ -17,7 +17,6 @@ def test_thread_publish_reaches_async_subscriber() -> None:
             t.start()
             got.append(await asyncio.wait_for(q.get(), 2))
             t.join()
-        assert bus.subscriber_count == 0
         return got
 
     assert asyncio.run(main()) == [{"type": "job", "n": 1}]

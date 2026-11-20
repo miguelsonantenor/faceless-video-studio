@@ -78,11 +78,3 @@ class Database:
     def schema_version(self) -> int:
         with self.connect() as conn:
             return conn.execute("PRAGMA user_version").fetchone()[0]
-
-    def tables(self) -> list[str]:
-        with self.connect() as conn:
-            rows = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table' "
-                "AND name NOT LIKE 'sqlite_%' ORDER BY name"
-            ).fetchall()
-        return [r["name"] for r in rows]

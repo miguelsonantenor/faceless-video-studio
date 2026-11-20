@@ -25,6 +25,19 @@ def core(home: Path) -> Iterator[Core]:
     c.jobs.stop(timeout=5)
 
 
+def capture_events(core: Core, monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    """Record every event the core publishes from now on."""
+    events: list[dict] = []
+    publish = core.bus.publish
+
+    def record(event: dict) -> None:
+        events.append(event)
+        publish(event)
+
+    monkeypatch.setattr(core.bus, "publish", record)
+    return events
+
+
 def wait_for(pred: Callable[[], bool], timeout: float = 5.0, interval: float = 0.02) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:

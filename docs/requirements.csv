@@ -98,3 +98,7 @@ REV-5,Live updates without reloading the page,Must,P1
 REV-6,"Let the creator edit the script or caption words in the web app, saved as a new version by the creator",Should,P2
 REV-7,Compare two versions side by side,Should,P2
 REV-8,Template editor with a live preview frame,Could,P5
+INS-1,"Keep named inspiration sets (for example one per channel), each a read-only folder of example videos the creator likes, with an optional note per video on what to take from it; inspiration videos are analysed but never used as footage",Should,P2
+INS-2,"Build a style profile from a set: video length, shot length and cuts per second, time to the first word, hook length, words per minute, sentence length, how videos end (call to action), loudness, and a look sheet of frames from each video; give the median and range across the set, and the value for each video",Should,P2
+INS-3,"Return the chosen set's profile and look sheet with the guide, and use its values as targets for script length and fit, planner pacing and shot length",Should,P2
+INS-4,"After a render, compare it with the profile and report differences as notes (for example average shot 2.6 s against 1.8 s in the examples); never a failed check",Could,P2

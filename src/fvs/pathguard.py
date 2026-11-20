@@ -36,9 +36,6 @@ class PathGuard:
             Area.OUTPUT: f.output.resolve(),
         }
 
-    def describe(self) -> str:
-        return ", ".join(f"{a.value}: {p}" for a, p in self.roots.items())
-
     def resolve(
         self,
         path: str | Path,
