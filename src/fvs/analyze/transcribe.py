@@ -22,7 +22,7 @@ from typing import Any
 from fvs.errors import ErrorCode, FvsError
 from fvs.jobs import JobCancelled
 from fvs.logs import get_logger
-from fvs.media.tools import run_tool
+from fvs.media.audio import decode_pcm
 
 MODEL_SIZE = "small"
 IDLE_UNLOAD_S = 300.0
@@ -80,24 +80,6 @@ def best_device() -> Device:
         except OSError:
             return CPU
     return GPU
-
-
-def load_audio(media: Path, cancelled: Callable[[], bool] | None = None) -> Any:
-    """Decode the first audio track to 16 kHz mono float32 samples with FFmpeg.
-
-    Whisper gets samples, not a file, so all media decoding stays with the FFmpeg that
-    ``fvs doctor`` checks (faster-whisper's own PyAV path breaks across PyAV versions).
-    """
-    import numpy as np
-
-    res = run_tool("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", str(media),
-                              "-map", "0:a:0", "-vn", "-ac", "1", "-ar", str(SAMPLE_RATE),
-                              "-f", "f32le", "-"], cancelled=cancelled, timeout=600)
-    if res.returncode != 0:
-        raise FvsError(ErrorCode.CLIP_UNREADABLE,
-                       f"The sound of {media.name} could not be decoded: {res.stderr_tail(2)}",
-                       "Check that the clip plays with sound; re-export it if it does not.")
-    return np.frombuffer(res.stdout, dtype=np.float32)
 
 
 class Whisper:
@@ -181,7 +163,9 @@ class Whisper:
                    cancelled: Callable[[], bool] | None = None,
                    progress: Callable[[float], None] | None = None,
                    duration_s: float | None = None) -> dict[str, Any]:
-        audio = load_audio(media, cancelled)
+        # Whisper gets samples, not a file, so all decoding stays with the FFmpeg that
+        # `fvs doctor` checks (faster-whisper's own PyAV path breaks across PyAV versions).
+        audio = decode_pcm(media, SAMPLE_RATE, cancelled)
         with self._lock:
             model = self._load()
             segments_iter, info = model.transcribe(

@@ -233,6 +233,16 @@ WP1 and WP2 can run in parallel; the web app (WP8) can start against mocked API 
 
 ### WP2: Script and voice (L) — SCR-1–5, VO-1–7, NFR-C1, NFR-C2
 
+> **Status, 2026-11-20: done.** 149 tests pass (AC-8 against a fake ElevenLabs served through `httpx.MockTransport`), ruff and vulture are clean. Code: `fvs/projects.py` (project creation, number/ID lookup, and the whole lifecycle table from section 4.1 in one `advance()`), `fvs/script/` (`markup`, `service`), `fvs/voice/` (`profiles`, `elevenlabs`, `timing`, `budget`, `service`), `fvs/media/audio.py`; CLI `fvs key`; API `/api/voices`, `/api/budget`. Notes:
+> - Migration 0002 adds `sentences.tokens`: each sentence keeps its markup as token groups (`caption`, `spoken`, `emph`), which is how spoken word timings map back to caption words for `{display|spoken}` pairs.
+> - A `[pause]` in the middle of a line ends the sentence there (voice is made per sentence). A one-line script is split at `. ! ?`; anything else uses one sentence per line.
+> - Saving an identical script returns the current version (`unchanged: true`), so a retried call never creates a version. Over `video.max_seconds` is refused (`SCRIPT_TOO_LONG`, with words to cut); outside the target range is a `fit` value plus a warning.
+> - A new voiceover from Planned or later returns the project to Planned (the spec stays valid; the render is stale). Not drawn in DS 7; chosen so a voice change always leads to a new render.
+> - The budget is re-read before every ElevenLabs call, so a stop mid-run keeps the sentences already made (cached, never billed again). `allow_over_budget` marks the ledger rows that went over and writes an activity line.
+> - Sentence audio is decoded to 48 kHz and joined in numpy with exact sample-count silence, so timings and the WAV length agree to the sample. Default profile `narrator`: ElevenLabs' premade "George" voice on `eleven_multilingual_v2`.
+> - Extra error codes beyond DS 8.6: `SCRIPT_INVALID` (markup, hook), `WRONG_STATE` (lifecycle). A missing key is `VOICE_AUTH` with the fix `fvs key`.
+> - Live test: `FVS_LIVE_ELEVENLABS=1 uv run pytest tests/media/test_voice_live.py` (about 40 characters). Not run yet: no key is saved on this machine.
+
 **Script service**
 - Markup parser: one sentence per line (else split at `.!?`); `[pause 0.8]` (0.1–3 s), `{caption|spoken}`, `*emphasis*`. Output per sentence: spoken text, caption tokens (with emphasis flags), `pause_after_s`.
 - Language guard: refuse scripts not written with spaces between words (`LANGUAGE_UNSUPPORTED`).

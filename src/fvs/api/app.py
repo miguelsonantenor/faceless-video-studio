@@ -29,6 +29,8 @@ _STATUS = {
     ErrorCode.PATH_NOT_ALLOWED: 403,
     ErrorCode.SETTINGS_INVALID: 422,
     ErrorCode.SPEC_INVALID: 422,
+    ErrorCode.WRONG_STATE: 409,
+    ErrorCode.BUDGET_EXCEEDED: 402,
     ErrorCode.INTERNAL: 500,
 }
 
@@ -119,6 +121,22 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
     async def patch_settings(changes: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
         core.settings.update(changes, source="creator")
         return settings_payload(core)
+
+    # ---- voices and spending (VO-5, VO-6, REV-1, REV-4) --------------------------------
+
+    @app.get("/api/voices")
+    async def voices() -> dict[str, Any]:
+        return {"items": core.profiles.list()}
+
+    @app.put("/api/voices/{alias}")
+    async def save_voice(alias: str, data: Annotated[dict[str, Any], Body()],
+                         make_default: bool = False) -> dict[str, Any]:
+        profile = core.profiles.save({**data, "alias": alias}, make_default=make_default)
+        return profile.model_dump()
+
+    @app.get("/api/budget")
+    async def budget() -> dict[str, Any]:
+        return core.budget.status()
 
     # ---- activity and jobs -----------------------------------------------------------
 

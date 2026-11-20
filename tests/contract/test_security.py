@@ -124,6 +124,19 @@ def test_doctor_endpoint(client: TestClient, keyed_core: Core) -> None:
     assert {"FFmpeg", "Disk space", "ElevenLabs key", "Claude Desktop"} <= names
 
 
+def test_voices_and_budget_endpoints(client: TestClient, keyed_core: Core) -> None:
+    h = auth(keyed_core)
+    items = client.get("/api/voices", headers=h).json()["items"]
+    assert [(v["alias"], v["is_default"]) for v in items] == [("narrator", True)]
+    r = client.put("/api/voices/calm?make_default=true", headers=h,
+                   json={"voice_id": "abc", "speed": 0.9})
+    assert r.status_code == 200 and r.json()["alias"] == "calm"
+    assert keyed_core.profiles.get().alias == "calm"
+    bad = client.put("/api/voices/x", headers=h, json={"voice_id": "abc", "speed": 3})
+    assert bad.status_code == 422 and "speed" in bad.json()["message"]
+    assert client.get("/api/budget", headers=h).json()["left"] == 20_000
+
+
 def test_jobs_endpoints(client: TestClient, keyed_core: Core) -> None:
     job = keyed_core.jobs.submit("nothing-handles-this")
     r = client.get(f"/api/jobs/{job['id']}", headers=auth(keyed_core))

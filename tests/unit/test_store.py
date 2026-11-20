@@ -39,11 +39,11 @@ def _project(conn: sqlite3.Connection, pid: str = "p1", number: int = 1) -> None
 
 def test_all_ds_tables_exist(db: Database) -> None:
     assert tables(db) == DS_TABLES
-    assert db.schema_version() == 1
+    assert db.schema_version() == 2
 
 
 def test_migrate_is_idempotent(db: Database) -> None:
-    assert db.migrate() == 1
+    assert db.migrate() == 2
     assert tables(db) == DS_TABLES
 
 

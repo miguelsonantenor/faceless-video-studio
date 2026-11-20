@@ -59,6 +59,23 @@ def token() -> None:
     typer.echo(ensure_token())
 
 
+@app.command()
+def key() -> None:
+    """Save the ElevenLabs API key in ~/.fvs/config.toml (readable only by you)."""
+    from pydantic import SecretStr
+
+    from fvs.config import save_config
+
+    config = ensure_config()
+    value = typer.prompt("ElevenLabs API key", hide_input=True).strip()
+    if not value:
+        raise typer.Exit(1)
+    config.elevenlabs_api_key = SecretStr(value)
+    path = save_config(config)
+    typer.echo(f"Saved the key ending {config.api_key_last4} to {path}. "
+               "Restart `fvs serve` if it is running.")
+
+
 @app.command("whisper-download")
 def whisper_download() -> None:
     """Download the Whisper speech model (small, int8, about 500 MB) into ~/.fvs/models."""

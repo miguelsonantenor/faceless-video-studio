@@ -19,8 +19,14 @@ from fvs.jobs import JobQueue
 from fvs.library import Library
 from fvs.logs import configure_logging, get_logger, register_secret
 from fvs.pathguard import PathGuard
+from fvs.projects import Projects
+from fvs.script.service import ScriptService
 from fvs.settings import SettingsService, effective_renders_at_once
 from fvs.store import Database
+from fvs.voice.budget import Budget
+from fvs.voice.elevenlabs import ElevenLabs
+from fvs.voice.profiles import VoiceProfiles
+from fvs.voice.service import VoiceService
 
 log = get_logger("fvs.core")
 
@@ -43,6 +49,11 @@ class Core:
     whisper: Whisper
     analyzer: Analyzer
     analysis: AnalysisService
+    projects: Projects
+    profiles: VoiceProfiles
+    scripts: ScriptService
+    budget: Budget
+    voice: VoiceService
 
     @classmethod
     def open(cls, home: Path | None = None, *, configure_logs: bool = True) -> Core:
@@ -75,9 +86,25 @@ class Core:
         whisper = Whisper(home / "models")
         analyzer = Analyzer(folders.workspace / "cache", whisper)
         analysis = AnalysisService(library, analyzer, jobs, activity)
+        projects = Projects(db, library, activity, folders.workspace)
+        profiles = VoiceProfiles(db, activity)
+        profiles.seed()
+        scripts = ScriptService(db, projects, profiles, settings, activity)
+        budget = Budget(db, settings)
+
+        def api_key() -> str | None:  # read on every call: Settings may replace the key
+            key = config.elevenlabs_api_key
+            return key.get_secret_value() if key is not None else None
+
+        voice = VoiceService(
+            db, projects=projects, scripts=scripts, profiles=profiles,
+            client=ElevenLabs(api_key), budget=budget, jobs=jobs, settings=settings,
+            activity=activity, workspace=folders.workspace)
         return cls(home=home, config=config, token=token, db=db, bus=bus, activity=activity,
                    settings=settings, jobs=jobs, guard=guard, library=library,
-                   whisper=whisper, analyzer=analyzer, analysis=analysis)
+                   whisper=whisper, analyzer=analyzer, analysis=analysis,
+                   projects=projects, profiles=profiles, scripts=scripts, budget=budget,
+                   voice=voice)
 
     def start(self) -> None:
         self.jobs.recover()

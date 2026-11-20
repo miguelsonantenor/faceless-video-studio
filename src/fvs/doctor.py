@@ -21,11 +21,11 @@ from typing import Literal
 import httpx
 
 from fvs.config import Config
+from fvs.voice.elevenlabs import SUBSCRIPTION_URL
 
 Status = Literal["ok", "warn", "fail"]
 GB = 1024**3
 MIN_FFMPEG_MAJOR = 7
-ELEVENLABS_SUBSCRIPTION_URL = "https://api.elevenlabs.io/v1/user/subscription"
 HW_ENCODERS = ("h264_nvenc", "h264_qsv", "h264_amf", "h264_videotoolbox")
 
 
@@ -145,7 +145,7 @@ def check_elevenlabs(config: Config, *, online: bool) -> Check:
     if not online:
         return Check("ElevenLabs key", "ok", f"Key ending {config.api_key_last4} (not tested)")
     try:
-        resp = httpx.get(ELEVENLABS_SUBSCRIPTION_URL, timeout=10,
+        resp = httpx.get(SUBSCRIPTION_URL, timeout=10,
                          headers={"xi-api-key": config.elevenlabs_api_key.get_secret_value()})
     except httpx.HTTPError:
         return Check("ElevenLabs key", "warn", "Could not reach ElevenLabs",
