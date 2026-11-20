@@ -38,7 +38,7 @@ TRANSITIONS: dict[str, dict[str, str]] = {
     "voiceover_made": {"scripted": "voiced", "voiced": "voiced",
                        **{s: "planned" for s in _WORKING[2:]}},
     "spec_saved": {s: "planned" for s in _WORKING[1:]},
-    "render_started": {"planned": "rendering"},
+    "render_started": {"planned": "rendering", "rendering": "rendering"},  # retry after a fail
     "render_done": {"rendering": "claude_check"},
     "ready": {"claude_check": "in_review"},
     "approve": {"in_review": "exported"},

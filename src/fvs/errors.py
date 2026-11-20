@@ -24,6 +24,7 @@ class ErrorCode(StrEnum):
     VOICE_INPUT_INVALID = "VOICE_INPUT_INVALID"
     SPEC_INVALID = "SPEC_INVALID"
     CUE_UNRESOLVED = "CUE_UNRESOLVED"
+    RENDER_FAILED = "RENDER_FAILED"
     PATH_NOT_ALLOWED = "PATH_NOT_ALLOWED"
     # Not in DS 8.6, needed by the core itself:
     SCRIPT_INVALID = "SCRIPT_INVALID"  # markup or field rules (SCR-1, SCR-3)

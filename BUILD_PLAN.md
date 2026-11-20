@@ -298,6 +298,16 @@ WP1 and WP2 can run in parallel; the web app (WP8) can start against mocked API 
 
 ### WP4: Compiler and renderer (L) — RND-1–5, EDT-6–8, CAP-1–6, AUD-1–4, OVL-1
 
+> **Status, 2026-11-20: done, with one open item (fonts).** 209 tests pass, 1 skipped; ruff and vulture are clean. Code: `fvs/compile/` (`graph`, `ass`, `compiler`), `fvs/render/service.py`, `fvs/media/tools.py` (working folder + live progress lines). Measured on this PC: a 5.2 s video renders in 7.5 s (two passes); the media tests check AC-2 (format, fast start), AC-3 (−14 ± 1 LUFS, true peak ≤ −1 dBTP), AC-5 (original sound drops ≥ 10 dB under the voice), reuse by spec hash, and cancel. Notes:
+> - **Fonts (open):** the caption styles name Montserrat and Inter (OFL). They are not downloaded yet; until their files are in `src/fvs/assets_bundled/fonts/` (copied to `workspace/assets/fonts` on start), captions use Arial Black/Arial and every render result carries a warning.
+> - FFmpeg runs from the project folder, so the caption file and `fontsdir` are short relative paths; this avoids escaping the Windows drive colon inside filter arguments.
+> - Each segment's clip is cut at the input (`-ss`/`-t` with a 0.25 s margin) and trimmed exactly in the graph; boundaries are whole frames.
+> - Slow zoom = per-frame `scale` (eval=frame) then a fixed 1080×1920 `crop`; pan = 1.1× scale plus a moving crop. Tested to give constant 1080×1920 output.
+> - **Ducking differs from DS 5.5:** instead of `sidechaincompress`, the clip sound and music get a volume envelope from the voiceover's sentence times (`duck_db`, 0.15 s ramps). The times are known exactly, so the drop is exactly `duck_db` and AC-5 holds whatever the voice level.
+> - Loudness: pass 1 is audio only (`-vn` inputs) with `loudnorm print_format=json`; pass 2 applies the measurement linearly, aiming 0.5 dB under the true-peak limit to leave room for AAC.
+> - Lifecycle: `render_started` is also allowed from Rendering, so a failed render can be retried; the failure stays a flag.
+> - Still frames from a spec (`at=t`) moved to WP5, where `fvs_frames` needs them.
+
 **Typed filter-graph builder**: nodes, labelled pads and auto-escaping, so labels and quoting are always right. One module per stage (NFR-M2).
 
 **Stages** (DS 5.5):

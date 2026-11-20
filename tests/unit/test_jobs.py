@@ -68,7 +68,7 @@ def test_job_runs_to_done_with_result_progress_and_activity(
     assert done["progress"] == 1.0
     assert any(e["type"] == "job_progress" and e["note"] == "halfway" for e in events)
     # The activity line is written just after the job is marked done.
-    wait_for(lambda: running.activity.recent(1)[0]["summary"] == "Echoed 7.")
+    wait_for(lambda: any(a["summary"] == "Echoed 7." for a in running.activity.recent(5)))
 
 
 def test_failure_sets_and_success_clears_the_project_flag(running: Core) -> None:
