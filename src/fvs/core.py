@@ -14,8 +14,11 @@ from fvs.activity import ActivityLog
 from fvs.analyze.analyzer import Analyzer
 from fvs.analyze.service import AnalysisService
 from fvs.analyze.transcribe import Whisper
+from fvs.assets import AssetService
+from fvs.batch import BatchService
 from fvs.config import Config, ensure_config, ensure_token, fvs_home
 from fvs.events import EventBus
+from fvs.export.exporter import Exporter
 from fvs.jobs import JobQueue
 from fvs.library import Library
 from fvs.logs import configure_logging, get_logger, register_secret
@@ -23,6 +26,7 @@ from fvs.pathguard import PathGuard
 from fvs.plan.planner import Planner
 from fvs.projects import Projects
 from fvs.render.service import RenderService, install_fonts
+from fvs.review.service import ReviewService
 from fvs.script.service import ScriptService
 from fvs.see.service import Perception
 from fvs.see.transcripts import Transcripts
@@ -66,6 +70,9 @@ class Core:
     planner: Planner
     renders: RenderService
     perception: Perception
+    reviews: ReviewService
+    batches: BatchService
+    assets: AssetService
 
     @classmethod
     def open(cls, home: Path | None = None, *, configure_logs: bool = True) -> Core:
@@ -130,12 +137,21 @@ class Core:
                                 specs=specs, renders=renders, settings=settings,
                                 transcripts=transcripts, jobs=jobs,
                                 workspace=folders.workspace)
+        exporter = Exporter(projects=projects, scripts=scripts, specs=specs, voice=voice,
+                            output=folders.output)
+        reviews = ReviewService(db, projects=projects, specs=specs, exporter=exporter,
+                                activity=activity)
+        batches = BatchService(db, projects=projects, voice=voice, planner=planner,
+                               specs=specs, renders=renders, jobs=jobs, budget=budget,
+                               activity=activity)
+        assets = AssetService(db, guard, activity, folders.assets)
         return cls(home=home, config=config, token=token, db=db, bus=bus, activity=activity,
                    settings=settings, jobs=jobs, guard=guard, library=library,
                    whisper=whisper, analyzer=analyzer, analysis=analysis,
                    projects=projects, profiles=profiles, scripts=scripts, budget=budget,
                    voice=voice, templates=templates, specs=specs, planner=planner,
-                   renders=renders, perception=perception)
+                   renders=renders, perception=perception, reviews=reviews,
+                   batches=batches, assets=assets)
 
     def start(self) -> None:
         self.jobs.recover()

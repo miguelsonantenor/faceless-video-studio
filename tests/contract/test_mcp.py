@@ -29,10 +29,12 @@ from tests.conftest import add_clip
 
 KEY = "sk_live_TESTKEY_0123456789wxyz"
 BASE = "http://127.0.0.1:8787"
-P1_NOW = {"fvs_guide", "fvs_library_scan", "fvs_project_create", "fvs_project_get",
+P1_TOOLS = {"fvs_guide", "fvs_library_scan", "fvs_project_create", "fvs_project_get",
           "fvs_clip_inspect", "fvs_frames", "fvs_storyboard", "fvs_listen", "fvs_script_save",
           "fvs_voiceover_generate", "fvs_edit_plan", "fvs_edit_save", "fvs_render",
-          "fvs_job_get", "fvs_job_cancel", "fvs_settings"}
+          "fvs_job_get", "fvs_job_cancel", "fvs_settings", "fvs_projects_list",
+          "fvs_project_review", "fvs_project_restore", "fvs_batch_run", "fvs_assets_list",
+          "fvs_asset_import"}
 
 
 @pytest.fixture
@@ -95,7 +97,7 @@ def test_bad_json_is_a_parse_error(client: TestClient) -> None:
 
 def test_tool_definitions(client: TestClient) -> None:
     tools = rpc(client, "tools/list")["result"]["tools"]
-    assert {t["name"] for t in tools} == P1_NOW
+    assert {t["name"] for t in tools} == P1_TOOLS
     for t in tools:
         Draft202012Validator.check_schema(t["inputSchema"])
         assert t["inputSchema"]["type"] == "object"
@@ -307,6 +309,6 @@ def test_stdio_proxy_with_the_sdk_client(served: Core, home: Path, tmp_path: Pat
             return tools, guide.structured_content, prompts
 
     tools, guide, prompts = asyncio.run(session())
-    assert tools == P1_NOW
+    assert tools == P1_TOOLS
     assert guide["voices"][0]["alias"] == "narrator"
     assert len(prompts) == 4

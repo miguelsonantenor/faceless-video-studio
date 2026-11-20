@@ -26,7 +26,7 @@ from fvs.analyze.probe import probe
 from fvs.atomic import atomic_path, write_text_atomic
 from fvs.compile.compiler import Inputs, compile_render, parse_loudnorm
 from fvs.errors import ErrorCode, FvsError
-from fvs.jobs import JobCancelled, JobContext, JobQueue
+from fvs.jobs import JobCancelled, JobContext, JobQueue, StepContext
 from fvs.logs import get_logger
 from fvs.media.tools import Result, run_tool
 from fvs.projects import Projects, next_state
@@ -113,16 +113,7 @@ class RenderService:
                                "Save one with fvs_edit_save first.")
             existing = self._existing(current["spec_hash"])
             if existing is not None:
-                with self.db.transaction() as conn:
-                    row = self.projects.get_row(proj["id"], conn)
-                    if row["render_id"] != existing["id"] and row["state"] == "planned":
-                        self.projects.advance(conn, row, "render_started")
-                        row = self.projects.get_row(proj["id"], conn)
-                        self.projects.advance(conn, row, "render_done",
-                                              fields={"render_id": existing["id"]},
-                                              stale_remove=("render",))
-                items.append({"project": proj["number"], "status": "reused",
-                              "render_id": existing["id"], "path": existing["path"]})
+                items.append(self._reuse(proj, existing))
                 continue
             next_state(proj, "render_started")
             job = self.jobs.submit("render", {"spec_version": current["version"],
@@ -141,6 +132,39 @@ class RenderService:
         reused = sum(1 for i in items if i["status"] == "reused")
         return {"items": items,
                 "summary": f"{len(items) - reused} render(s) started, {reused} reused."}
+
+    def _reuse(self, proj: dict[str, Any], existing: dict[str, Any]) -> dict[str, Any]:
+        """Point the project at an earlier render of the same spec (RND-5)."""
+        with self.db.transaction() as conn:
+            row = self.projects.get_row(proj["id"], conn)
+            if row["render_id"] != existing["id"] and row["state"] == "planned":
+                self.projects.advance(conn, row, "render_started")
+                row = self.projects.get_row(proj["id"], conn)
+                self.projects.advance(conn, row, "render_done",
+                                      fields={"render_id": existing["id"]},
+                                      stale_remove=("render",))
+        return {"project": proj["number"], "status": "reused", "render_id": existing["id"],
+                "path": existing["path"]}
+
+    def render_in(self, parent: JobContext, ref: int | str, *, start: float,
+                  end: float) -> dict[str, Any]:
+        """Render one project inside another job's worker (a batch step)."""
+        proj = self.projects.get_row(ref)
+        current = self.specs.current(proj)
+        if current is None:
+            raise FvsError(ErrorCode.WRONG_STATE,
+                           f"Project #{proj['number']} has no Edit Spec to render.",
+                           "Add the plan step, or save a spec with fvs_edit_save.")
+        existing = self._existing(current["spec_hash"])
+        if existing is not None:
+            return self._reuse(proj, existing)
+        with self.db.transaction() as conn:
+            self.projects.advance(conn, self.projects.get_row(proj["id"], conn),
+                                  "render_started")
+        return self.run_job(StepContext(parent, project_id=proj["id"],
+                                        payload={"spec_version": current["version"],
+                                                 "source": "claude"},
+                                        start=start, end=end))
 
     # ---- the job ---------------------------------------------------------------------
 

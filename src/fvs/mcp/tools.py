@@ -406,13 +406,96 @@ def job_cancel(core: Core, a: JobCancelArgs) -> dict[str, Any]:
     return {"job": job, "summary": f"Job {a.job_id[:8]} is {job['state']}."}
 
 
+# ---- lifecycle, batches, assets (WP7) ---------------------------------------------------
+
+
+class ListArgs(Args):
+    state: Literal[tuple(STATE_LABELS)] | None = Field(None, description="Only this state")
+    failed_only: bool = False
+    needs_attention: bool = Field(False, description="Failed, changes requested, or "
+                                                     "waiting for your check")
+    cursor: int | None = Field(None, description="next_cursor from the previous page")
+    response_format: Format = "concise"
+
+
+def projects_list(core: Core, a: ListArgs) -> dict[str, Any]:
+    return core.reviews.list_projects(state=a.state, failed_only=a.failed_only,
+                                      needs_attention=a.needs_attention, cursor=a.cursor,
+                                      concise=a.response_format == "concise")
+
+
+class ReviewArgs(Args):
+    projects: list[Ref] = Field(min_length=1, description="Project numbers")
+    decision: Literal["ready", "approve", "reject", "skip", "reopen"]
+    note: str | None = Field(None, max_length=500, description="Needed to reject and to "
+                                                               "override QA")
+    override_qa: bool = Field(False, description="Mark ready or approve despite a failed "
+                                                 "check; needs a note")
+
+
+def project_review(core: Core, a: ReviewArgs) -> dict[str, Any]:
+    return core.reviews.decide(a.projects, a.decision, note=a.note,
+                               override_qa=a.override_qa)
+
+
+class RestoreArgs(Args):
+    project: Ref = _ref_field("Project")
+    script_version: int | None = Field(None, ge=1)
+    spec_version: int | None = Field(None, ge=1)
+
+
+def project_restore(core: Core, a: RestoreArgs) -> dict[str, Any]:
+    return core.reviews.restore(a.project, script_version=a.script_version,
+                                spec_version=a.spec_version)
+
+
+class BatchArgs(Args):
+    projects: list[Ref] = Field(min_length=1, description="Project numbers")
+    steps: list[Literal["voiceover", "plan", "render"]] = Field(
+        min_length=1, description="Run in this order for each project")
+    template: str | None = Field(None, description="Re-plan with this template; without "
+                                                   "it a saved Edit Spec is kept")
+    voice: str | None = Field(None, description="Voice alias from fvs_guide")
+    allow_over_budget: bool = Field(False, description="Only after the creator agreed in "
+                                                       "chat")
+
+
+def batch_run(core: Core, a: BatchArgs) -> dict[str, Any]:
+    return core.batches.run(a.projects, list(a.steps), template=a.template, voice=a.voice,
+                            allow_over_budget=a.allow_over_budget)
+
+
+class AssetsArgs(Args):
+    kind: Literal["music", "font", "logo", "image", "sfx"] | None = None
+    tag: str | None = None
+    cursor: int | None = None
+
+
+def assets_list(core: Core, a: AssetsArgs) -> dict[str, Any]:
+    return core.assets.list_assets(kind=a.kind, tag=a.tag, cursor=a.cursor)
+
+
+class AssetImportArgs(Args):
+    path: str = Field(description="A file in the input or assets folder")
+    kind: Literal["music", "font", "logo", "image", "sfx"]
+    license: str = Field(description="Where it comes from and its license, e.g. CC0")
+    name: str | None = None
+    tags: list[str] | None = Field(None, description="e.g. mood tags for music: calm, epic")
+    source_url: str | None = None
+
+
+def asset_import(core: Core, a: AssetImportArgs) -> dict[str, Any]:
+    return core.assets.import_file(a.path, kind=a.kind, license=a.license, name=a.name,
+                                   tags=a.tags, source_url=a.source_url)
+
+
 # ---- settings ---------------------------------------------------------------------------
 
 
 class SettingsArgs(Args):
     changes: dict[str, Any] | None = Field(
         None, description='Settings to change as dotted keys, e.g. {"video.max_seconds": '
-                          '60, "voice.daily_char_budget": 20000}; omit to read')
+                          '60, "voice.daily_budget_chars": 20000}; omit to read')
 
 
 def settings(core: Core, a: SettingsArgs) -> dict[str, Any]:
@@ -514,6 +597,42 @@ def build_registry() -> Registry:
                "render started by mistake. Finished work is kept and a cancelled render "
                "leaves no partial file. Free.", JobCancelArgs, job_cancel, idempotent=True,
                example='{"job_id": "<job_id>"}'))
+    r.add(Tool("fvs_projects_list", "List projects", "List projects and where each stands: "
+               "state, failed flag and error, stale parts, QA result, and the creator's "
+               "latest review note (act on rejections). Filter by state, failed_only or "
+               "needs_attention; 20 per page with next_cursor. Use it to resume unfinished "
+               "work. Free.", ListArgs, projects_list, read_only=True, idempotent=True,
+               example='{"state": "changes_requested"}'))
+    r.add(Tool("fvs_project_review", "Review projects", "Move projects through review: "
+               "ready (after your check; it goes to the creator's queue), approve (writes "
+               "the export package from the reviewed render), reject (needs a note), skip, "
+               "reopen. Ready or approve with a failed QA check fails with QA_FAILED unless "
+               "override_qa is true with a note saying why. Approve only when the creator "
+               "said so. Free.", ReviewArgs, project_review,
+               example='{"projects": [3], "decision": "ready"}'))
+    r.add(Tool("fvs_project_restore", "Restore a version", "Make an earlier script or Edit "
+               "Spec version current again (nothing is deleted). Restoring a script needs "
+               "a voiceover for it; restoring a spec reuses its render if there is one. "
+               "Free.", RestoreArgs, project_restore, idempotent=True,
+               example='{"project": 3, "spec_version": 2}'))
+    r.add(Tool("fvs_batch_run", "Run a batch", "Run steps (voiceover, plan, render) for many "
+               "projects as one job, project by project; one failure does not stop the "
+               "others. COSTS MONEY when it includes voiceover: the whole batch is checked "
+               "against today's budget first, and BUDGET_EXCEEDED means ask the creator in "
+               "chat, then call again with allow_over_budget. Returns a job_id; wait with "
+               "fvs_job_get, which shows a result per project.", BatchArgs, batch_run,
+               idempotent=True, costs_money=True,
+               example='{"projects": [3, 4, 5], "steps": ["voiceover", "plan", "render"]}'))
+    r.add(Tool("fvs_assets_list", "List assets", "List music, fonts, logos, images and sound "
+               "effects with their name, length, tags and license. Use a music asset's "
+               "name in audio.music.asset. Free.", AssetsArgs, assets_list, read_only=True,
+               idempotent=True, example='{"kind": "music", "tag": "calm"}'))
+    r.add(Tool("fvs_asset_import", "Import an asset", "Add a file from the input or assets "
+               "folder as an asset. The license is required (ask the creator where the "
+               "file comes from); ASSET_UNLICENSED means it was missing. Free.",
+               AssetImportArgs, asset_import,
+               example='{"path": "calm.mp3", "kind": "music", "license": "CC0", '
+                       '"tags": ["calm"]}'))
     r.add(Tool("fvs_settings", "Settings", "Read or change settings: video length, daily "
                "character budget, export folder, default template and voice, renders at "
                "once, safe zone. Changes are checked like in the web app and logged. The "

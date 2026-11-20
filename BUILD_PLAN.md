@@ -384,6 +384,13 @@ Plus a contact sheet stored per render (QA-3). Marking ready or approving with a
 
 ### WP7: Lifecycle, review, batch, export (M) — PRJ-1–5, BAT-1–4, EXP-1, CAP-7, QA-4
 
+> **Status, 2026-11-20: done.** All 22 P1 tools are registered. 280 tests pass, 1 skipped. Code: `src/fvs/review/service.py` (decisions, QA rule, restore, project list), `src/fvs/export/exporter.py`, `src/fvs/batch.py`, `src/fvs/assets.py`, the six new tools in `src/fvs/mcp/tools.py`, and `POST /api/review` + `/api/review/approve-passed` for the web app. Notes:
+> - Batch steps run inside the batch's own worker (`StepContext`), so a batch never waits for a free worker and works with one. Each step is safe to repeat, so a batch re-queued after a restart picks up where it stopped. The plan step keeps a saved spec unless a template is given.
+> - Restore moves pointers only and works the state out again: a script without a voiceover returns to Scripted with the voiceover stale; a spec with an earlier render of the same hash goes straight to Claude check.
+> - A rejection needs a note; `override_qa` needs a note. Approve checks the move before writing the package, so a refused approve leaves nothing behind. A second approve after a reopen writes `..._slug_2`.
+> - The SRT has one cue per sentence (wrapped at 42 characters) with caption overrides applied. EXP-2 (AI label reminder) is P2.
+> - Assets copy from the input or assets folder into `assets/<kind>/`; the license is required (`ASSET_UNLICENSED`).
+
 - Lifecycle state machine (section 4.1) in one place, with guarded transitions; the stale flags; the failure flag.
 - `fvs_project_create`: one per clip, or several clips; series + part; number and slug.
 - `fvs_project_review`: ready | approve | reject | skip | reopen, for one or many; note; `override_qa`. Every decision → a `reviews` row.

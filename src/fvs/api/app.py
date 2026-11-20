@@ -31,6 +31,7 @@ _STATUS = {
     ErrorCode.SETTINGS_INVALID: 422,
     ErrorCode.SPEC_INVALID: 422,
     ErrorCode.WRONG_STATE: 409,
+    ErrorCode.QA_FAILED: 409,
     ErrorCode.BUDGET_EXCEEDED: 402,
     ErrorCode.INTERNAL: 500,
 }
@@ -138,6 +139,18 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
     @app.get("/api/budget")
     async def budget() -> dict[str, Any]:
         return core.budget.status()
+
+    # ---- review (REV-3) --------------------------------------------------------------
+
+    @app.post("/api/review")
+    async def review(data: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
+        return await asyncio.to_thread(
+            core.reviews.decide, data.get("projects") or [], data.get("decision", ""),
+            note=data.get("note"), override_qa=bool(data.get("override_qa")), by="creator")
+
+    @app.post("/api/review/approve-passed")
+    async def approve_passed() -> dict[str, Any]:
+        return await asyncio.to_thread(core.reviews.approve_passed)
 
     # ---- activity and jobs -----------------------------------------------------------
 

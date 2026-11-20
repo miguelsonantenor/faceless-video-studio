@@ -113,7 +113,10 @@ class VoiceService:
 
     def generate(self, project: int | str, *, voice: str | None = None,
                  dry_run: bool = False, allow_over_budget: bool = False,
-                 source: Source = "claude") -> dict[str, Any]:
+                 source: Source = "claude", step: JobContext | None = None
+                 ) -> dict[str, Any]:
+        """Make the voiceover: inline when every sentence is cached or when ``step`` (a
+        batch step) is given, otherwise as a ``voice`` job."""
         proj = self.projects.get_row(project)
         profile = self.profiles.get(voice)
         sentences, keys, cached = self._plan(proj, profile)
@@ -157,6 +160,10 @@ class VoiceService:
         if not missing:  # everything cached: joining is quick, do it now
             return self._build(proj, profile, allow_over_budget=allow_over_budget,
                                source=source)
+        if step is not None:
+            return self._build(proj, profile, allow_over_budget=allow_over_budget,
+                               source=source, progress=step.progress,
+                               cancelled=lambda: step.cancelled)
 
         job = self.jobs.submit(
             "voice", {"voice": profile.alias, "script_version": proj["script_v"],

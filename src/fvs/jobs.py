@@ -51,6 +51,29 @@ class JobContext:
         self._queue._set_progress(self.job_id, max(0.0, min(1.0, fraction)), note)
 
 
+class StepContext(JobContext):
+    """One step of a parent job, run inline in the parent's worker (batches, BAT-1).
+
+    It reports progress into the ``start``–``end`` part of the parent's bar and is
+    cancelled with the parent. Running steps inline means a batch never waits for a free
+    worker, so it works with a single worker too.
+    """
+
+    def __init__(self, parent: JobContext, *, project_id: str, payload: dict[str, Any],
+                 start: float, end: float) -> None:
+        self._queue = parent._queue
+        self.job_id = parent.job_id
+        self.kind = parent.kind
+        self.project_id = project_id
+        self.payload = payload
+        self._cancel = parent._cancel
+        self._start, self._end = start, end
+
+    def progress(self, fraction: float, note: str | None = None) -> None:
+        span = self._end - self._start
+        super().progress(self._start + span * max(0.0, min(1.0, fraction)), note)
+
+
 Handler = Callable[[JobContext], dict[str, Any] | None]
 
 
