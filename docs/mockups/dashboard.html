@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FVS dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#2B50E6}a:hover{color:#1F3FC2}
+</style>
+</head>
+<body>
+<div style="font-family: Inter, system-ui, sans-serif; color: #17181C; background: #F6F6F3; font-size: 14px; line-height: 1.45">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 14px 32px; background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px">F</div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px">Faceless Video Studio</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <a href="dashboard.html" aria-current="page" style="padding: 8px 12px; border-radius: 8px; background: #EEF1FD; color: #1F3FC2; font-weight: 600; text-decoration: none">Dashboard</a>
+      <a href="review-queue.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none; display: flex; align-items: center; gap: 6px">Review queue <span style="background: #FFF1D6; color: #7A4B00; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600">3</span></a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Templates</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Assets</a>
+      <a href="settings.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Settings</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5A5D66; font-size: 13px">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>
+      <span>Core running · Claude connected</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div>
+        <p style="margin: 0 0 4px; color: #5A5D66; font-size: 13px">Started 12:01 from Claude Desktop</p>
+        <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.01em">Today's batch · 15 projects</h1>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 14px 18px; min-width: 300px; box-sizing: border-box">
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px"><span style="color: #5A5D66">Voice budget today</span><span style="font-weight: 600">6,240 of 20,000 characters</span></div>
+        <div style="margin-top: 10px; height: 8px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: 31%; height: 8px; background: #2B50E6"></div></div>
+        <div style="margin-top: 8px; font-size: 12px; color: #5A5D66">ElevenLabs: 74,100 characters left this period · resets Dec 1</div>
+      </div>
+    </div>
+
+    <section aria-label="Projects by state" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px">
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #3D4049">4</div>
+          <div style="color: #5A5D66; font-size: 13px">New</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #3D4049">1</div>
+          <div style="color: #5A5D66; font-size: 13px">Scripted</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #3D4049">1</div>
+          <div style="color: #5A5D66; font-size: 13px">Voiced</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #3D4049">0</div>
+          <div style="color: #5A5D66; font-size: 13px">Planned</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #1F3FC2">2</div>
+          <div style="color: #5A5D66; font-size: 13px">Rendering</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #1F3FC2">0</div>
+          <div style="color: #5A5D66; font-size: 13px">Claude check</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #7A4B00">3</div>
+          <div style="color: #5A5D66; font-size: 13px">In review</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #7A4B00">1</div>
+          <div style="color: #5A5D66; font-size: 13px">Changes requested</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #1E5E35">2</div>
+          <div style="color: #5A5D66; font-size: 13px">Exported</div>
+        </div>
+      
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: #3D4049">1</div>
+          <div style="color: #5A5D66; font-size: 13px">Skipped</div>
+        </div>
+      
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <section aria-labelledby="projects-h" style="flex: 999 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #E3E3DE">
+          <h2 id="projects-h" style="margin: 0; font-size: 16px; font-weight: 600">Projects</h2>
+          <span style="color: #5A5D66; font-size: 13px">Showing 11 of 15 · latest activity first</span>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; min-width: 640px">
+            <thead>
+              <tr style="text-align: left; color: #5A5D66; font-size: 12px">
+                <th scope="col" style="padding: 10px 20px; font-weight: 500">#</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">Video</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">State</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">Where it stands</th>
+                <th scope="col" style="padding: 10px 20px 10px 8px; font-weight: 500; text-align: right">Length</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#6</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Why the ocean glows at night</a>
+                    <div style="color: #5A5D66; font-size: 12px">ocean_drone_04.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #E8EDFF; color: #1F3FC2">Rendering</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Render 62%</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:34</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#4</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Ants that farm fungus</a>
+                    <div style="color: #5A5D66; font-size: 12px">ant_colony.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4B00">In review</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">All 8 checks passed</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:29</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#3</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">This volcano makes its own lightning</a>
+                    <div style="color: #5A5D66; font-size: 12px">volcano_storm.mov + 1 more</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4B00">In review</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">All 8 checks passed</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:35</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#5</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">The palm tree that walks</a>
+                    <div style="color: #5A5D66; font-size: 12px">walking_palm.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4B00">In review</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">1 check failed: loudness</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:33</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#11</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Penguins propose with pebbles</a>
+                    <div style="color: #5A5D66; font-size: 12px">penguin_pebble.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4B00">Changes requested</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Note: hook too slow</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:31</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#7</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">The desert that blooms once a decade</a>
+                    <div style="color: #5A5D66; font-size: 12px">desert_bloom.mov</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #EEEEEA; color: #3D4049">Voiced</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">7 sentences, 31.8 s, fits</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">—</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#9</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Glass frogs are see-through</a>
+                    <div style="color: #5A5D66; font-size: 12px">glass_frog.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #E8EDFF; color: #1F3FC2">Rendering</span>
+                    <span style="display: inline-block; margin-left: 4px; border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 600; background: #FDE2E0; color: #9B1C14">failed</span>
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Disk was full; render queued again</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">—</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#8</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">How bees vote on a new home</a>
+                    <div style="color: #5A5D66; font-size: 12px">bee_swarm.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #EEEEEA; color: #3D4049">Scripted</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Script v2, shortened to fit</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">—</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#10</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Mantis shrimp punches</a>
+                    <div style="color: #5A5D66; font-size: 12px">mantis_shrimp.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #EEEEEA; color: #3D4049">New</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">6 scenes, no speech in clip</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">—</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#1</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">Why octopuses have three hearts</a>
+                    <div style="color: #5A5D66; font-size: 12px">octopus_reef.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #DDF3E4; color: #1E5E35">Exported</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Package in output folder</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:41</td>
+                </tr>
+              
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">#2</td>
+                  <td style="padding: 12px 8px">
+                    <a href="project.html" style="color: #17181C; font-weight: 600; text-decoration: none">The loneliest whale in the ocean</a>
+                    <div style="color: #5A5D66; font-size: 12px">whale_song_02.mp4</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #DDF3E4; color: #1E5E35">Exported</span>
+                    
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">Package in output folder</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">0:38</td>
+                </tr>
+              
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+        <section aria-labelledby="activity-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="activity-h" style="margin: 0 0 4px; font-size: 16px; font-weight: 600">What Claude is doing</h2>
+          <p style="margin: 0 0 12px; color: #5A5D66; font-size: 13px">Every tool call Claude makes, in plain words. Updates live.</p>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:09</span>
+                <span style="font-size: 13px; color: #17181C">Marked #4 ready for review: all 8 checks passed.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:08</span>
+                <span style="font-size: 13px; color: #17181C">Listened to #4: the transcript matches the script; music is 16 dB under the voice.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:07</span>
+                <span style="font-size: 13px; color: #17181C">Looked at frames of #4 at 0:03, 0:12 and 0:27 with the safe zone drawn.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:06</span>
+                <span style="font-size: 13px; color: #17181C">Storyboard for #7: the shot under sentence 2 was too dark; swapped in the drone shot.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:05</span>
+                <span style="font-size: 13px; color: #17181C">Made the voiceover for #7: 7 sentences, 31.8 s, fits the clip.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:04</span>
+                <span style="font-size: 13px; color: #17181C">Skipped #12: the clip is mostly a black screen.</span>
+              </li>
+            
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">12:01</span>
+                <span style="font-size: 13px; color: #17181C">Started the batch: 15 projects, about 9,800 voice characters, within today's budget.</span>
+              </li>
+            
+          </ol>
+        </section>
+
+        <section aria-labelledby="jobs-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="jobs-h" style="margin: 0 0 12px; font-size: 16px; font-weight: 600">Running now</h2>
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            
+              <div>
+                <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span style="font-weight: 600">Render · #6</span><span style="color: #5A5D66">62% · about 20 s left</span></div>
+                <div style="margin-top: 6px; height: 6px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: 62%; height: 6px; background: #2B50E6"></div></div>
+              </div>
+            
+              <div>
+                <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span style="font-weight: 600">Clip analysis · #13 to #15</span><span style="color: #5A5D66">1 of 3 done</span></div>
+                <div style="margin-top: 6px; height: 6px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: 33%; height: 6px; background: #2B50E6"></div></div>
+              </div>
+            
+              <div>
+                <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span style="font-weight: 600">Render · #9 (second try)</span><span style="color: #5A5D66">Queued</span></div>
+                <div style="margin-top: 6px; height: 6px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: 0%; height: 6px; background: #2B50E6"></div></div>
+              </div>
+            
+          </div>
+        </section>
+
+        <section aria-labelledby="attention-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="attention-h" style="margin: 0 0 12px; font-size: 16px; font-weight: 600">Needs attention</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="border: 1px solid #F3C4BF; background: #FFF6F5; border-radius: 10px; padding: 12px 14px">
+              <div style="font-weight: 600; font-size: 13px; color: #9B1C14">#9 render failed</div>
+              <p style="margin: 4px 0 8px; font-size: 13px; color: #3D4049">FFmpeg ran out of disk space. FVS cleared old renders on its own, and Claude queued the render again.</p>
+              <a href="#" style="font-size: 13px; font-weight: 600">Open job log</a>
+            </div>
+            <div style="border: 1px solid #F0D9A8; background: #FFFAF0; border-radius: 10px; padding: 12px 14px">
+              <div style="font-weight: 600; font-size: 13px; color: #7A4B00">#11 changes requested</div>
+              <p style="margin: 4px 0 8px; font-size: 13px; color: #3D4049">Your note: "hook too slow". Claude will pick it up on its next pass.</p>
+              <a href="project.html" style="font-size: 13px; font-weight: 600">Open project</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

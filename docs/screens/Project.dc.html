@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FVS project #3</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#2B50E6}a:hover{color:#1F3FC2}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #17181C; background: #F6F6F3; font-size: 14px; line-height: 1.45">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 14px 32px; background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px">F</div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px">Faceless Video Studio</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <a href="Main.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Dashboard</a>
+      <a href="Review.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none; display: flex; align-items: center; gap: 6px">Review queue <span style="background: #FFF1D6; color: #7A4B00; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600">3</span></a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Templates</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Assets</a>
+      <a href="Settings.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Settings</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5A5D66; font-size: 13px">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>
+      <span>Core running · Claude connected</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 24px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <nav aria-label="Breadcrumb" style="font-size: 13px; color: #5A5D66"><a href="Main.dc.html" style="text-decoration: none">Dashboard</a> / #3 · clips volcano_storm.mov, lava_night.mp4</nav>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+        <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 28px; letter-spacing: -0.01em">#3 This volcano makes its own lightning</h1>
+        <span style="border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #FFF1D6; color: #7A4B00">In review</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px">
+        <button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Reject with note</button>
+        <button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2B50E6; background: #2B50E6; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Approve and export</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <section aria-labelledby="player-h" style="flex: 1 1 360px; max-width: 400px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="player-h" style="margin: 0; font-size: 16px; font-weight: 600">Render · spec v2</h2>
+        <div style="position: relative; width: 360px; max-width: 100%; height: 640px; border-radius: 22px; background: #14161B; overflow: hidden">
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6C707A; font-size: 12px">clip footage</div>
+          <div aria-hidden="true" style="position: absolute; top: 36px; left: 20px; right: 40px; bottom: 107px; border: 1.5px dashed rgba(255,255,255,0.45); border-radius: 6px"></div>
+          <span style="position: absolute; top: 40px; right: 46px; font-size: 10px; color: rgba(255,255,255,0.7)">safe zone</span>
+          <div style="position: absolute; top: 64px; left: 32px; right: 52px; background: #FFFFFF; color: #14161B; border-radius: 8px; padding: 10px 12px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; line-height: 1.2; text-align: center">Nobody expects this from a volcano</div>
+          <div style="position: absolute; left: 28px; right: 48px; top: 404px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; line-height: 1.15; color: #FFFFFF; text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0,0,0,0.6); text-transform: uppercase">its <span style="color: #FFD43B">own</span> lightning</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; width: 360px; max-width: 100%">
+          <button type="button" aria-label="Play render" style="width: 44px; height: 44px; border-radius: 50%; border: none; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="#FFFFFF"></path></svg>
+          </button>
+          <div style="flex: 1; height: 6px; border-radius: 999px; background: #E3E3DE; overflow: hidden"><div style="width: 33%; height: 6px; background: #2B50E6"></div></div>
+          <span style="font-size: 13px; color: #5A5D66; font-variant-numeric: tabular-nums">0:12 / 0:35</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; width: 360px; max-width: 100%; font-size: 13px; color: #3D4049">
+          <label style="display: flex; align-items: center; gap: 8px; min-height: 44px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #2B50E6"> Show TikTok safe zone</label>
+          <span style="color: #5A5D66; align-self: center">1080×1920 · the file that will be exported</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; width: 360px; max-width: 100%">
+          <label for="note" style="font-size: 13px; font-weight: 600">Note for Claude if you reject</label>
+          <textarea id="note" rows="3" placeholder="e.g. the hook is too slow, start on the lightning" style="font: 14px Inter, sans-serif; padding: 10px 12px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; resize: vertical"></textarea>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px">
+          <a href="#" style="font-weight: 600">Edit Spec v2 (JSON)</a>
+          <a href="#" style="font-weight: 600">Job logs</a>
+        </div>
+      </section>
+
+      <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <section aria-labelledby="board-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="board-h" style="margin: 0 0 4px; font-size: 16px; font-weight: 600">Storyboard: which shot plays under each sentence</h2>
+          <p style="margin: 0 0 12px; color: #5A5D66; font-size: 13px">The same storyboard Claude checked before rendering.</p>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{segments}}" as="g" hint-placeholder-count="4">
+              <li style="display: flex; gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid #EFEFEA">
+                <div aria-hidden="true" style="flex: none; width: 45px; height: 80px; border-radius: 6px; background: #14161B"></div>
+                <div style="flex: none; width: 110px; font-size: 12px; color: #5A5D66; font-variant-numeric: tabular-nums">{{g.time}}<br>{{g.source}}</div>
+                <div style="flex: 1; min-width: 0"><span style="font-size: 12px; color: #5A5D66">{{g.sentences}}</span><div>{{g.text}}</div></div>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <section aria-labelledby="sheet-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="sheet-h" style="margin: 0 0 4px; font-size: 16px; font-weight: 600">What Claude checked</h2>
+          <p style="margin: 0 0 14px; color: #5A5D66; font-size: 13px">Frames Claude looked at in the render, and what it "heard" through the transcript and sound levels.</p>
+          <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{frames}}" as="f" hint-placeholder-count="6">
+              <figure style="margin: 0">
+                <div style="height: 150px; border-radius: 8px; background: #14161B; position: relative">
+                  <div style="position: absolute; left: 6px; right: 6px; bottom: 30px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.75)"></div>
+                </div>
+                <figcaption style="margin-top: 4px; font-size: 12px; color: #5A5D66; font-variant-numeric: tabular-nums">{{f}}</figcaption>
+              </figure>
+            </sc-for>
+          </div>
+          <dl style="margin: 14px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 24px">
+            <div><dt style="color: #5A5D66; font-size: 12px">Transcript vs script</dt><dd style="margin: 2px 0 0; font-weight: 500">All 85 words heard (about 150 per minute)</dd></div>
+            <div><dt style="color: #5A5D66; font-size: 12px">Music under the voice</dt><dd style="margin: 2px 0 0; font-weight: 500">16 dB lower</dd></div>
+            <div><dt style="color: #5A5D66; font-size: 12px">Silences over 0.7 s</dt><dd style="margin: 2px 0 0; font-weight: 500">One, the planned pause after sentence 2</dd></div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="qa-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px">
+            <h2 id="qa-h" style="margin: 0; font-size: 16px; font-weight: 600">Quality checks</h2>
+            <span style="border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: #DDF3E4; color: #1E5E35">8 of 8 passed</span>
+          </div>
+          <ul style="list-style: none; margin: 0; padding: 0">
+            <sc-for list="{{checks}}" as="c" hint-placeholder-count="8">
+              <li style="display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid #EFEFEA">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" style="flex: none; position: relative; top: 2px"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="#1E7A45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                <span style="flex: 1; font-weight: 500">{{c.name}}</span>
+                <span style="color: #3D4049; font-variant-numeric: tabular-nums; text-align: right">{{c.value}}</span>
+              </li>
+            </sc-for>
+          </ul>
+        </section>
+
+        <section aria-labelledby="script-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px">
+            <h2 id="script-h" style="margin: 0; font-size: 16px; font-weight: 600">Script · version 2 of 2</h2>
+            <a href="#" style="font-size: 13px; font-weight: 600">Restore version 1</a>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px 16px">
+            <dt style="color: #5A5D66">Hook</dt>
+            <dd style="margin: 0; font-weight: 600">Nobody expects this from a volcano</dd>
+            <dt style="color: #5A5D66">Sentences</dt>
+            <dd style="margin: 0">
+              <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px">
+                <li>Inside a volcanic ash cloud, billions of tiny pieces of rock and ice are crashing into each other.</li>
+                <li>Every single hit moves a little electric charge from one piece to another. <span style="color: #5A5D66">[pause 0.8]</span></li>
+                <li>The lighter pieces rise to the top of the cloud, and the heavier ones fall.</li>
+                <li>That splits the charge, just like inside a normal storm cloud.</li>
+                <li>When enough builds up, the cloud makes *its own* lightning.</li>
+                <li>Scientists call it a dirty thunderstorm.</li>
+                <li>And it can light up the sky for hours after an eruption.</li>
+              </ol>
+            </dd>
+            <dt style="color: #5A5D66">Post caption</dt>
+            <dd style="margin: 0">Volcanoes can make their own lightning. Here's how.</dd>
+            <dt style="color: #5A5D66">Hashtags</dt>
+            <dd style="margin: 0; color: #2B50E6">#science #volcano #nature #learnontiktok</dd>
+            <dt style="color: #5A5D66">Written by</dt>
+            <dd style="margin: 0">Claude, 12:02 · version 1 was 3 s too long</dd>
+          </dl>
+        </section>
+
+        <section aria-labelledby="edit-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="edit-h" style="margin: 0 0 12px; font-size: 16px; font-weight: 600">Voice and edit</h2>
+          <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 24px">
+            <sc-for list="{{settings}}" as="s" hint-placeholder-count="6">
+              <div>
+                <dt style="color: #5A5D66; font-size: 12px">{{s.k}}</dt>
+                <dd style="margin: 2px 0 0; font-weight: 500">{{s.v}}</dd>
+              </div>
+            </sc-for>
+          </dl>
+          <p style="margin: 14px 0 0; font-size: 13px; color: #5A5D66">Want something changed? Ask Claude in chat, for example "put the lava shot under sentence 3 on #3".</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      segments: [
+        { time: '0:00 – 0:07.4', source: 'volcano_storm 0:02', sentences: 'Sentence 1', text: 'Inside a volcanic ash cloud, billions of tiny pieces of rock and ice…' },
+        { time: '0:07.4 – 0:13.5', source: 'volcano_storm 0:21', sentences: 'Sentence 2 + pause 0.8 s', text: 'Every single hit moves a little electric charge…' },
+        { time: '0:13.5 – 0:27.0', source: 'lava_night 0:05', sentences: 'Sentences 3 to 5', text: 'The lighter pieces rise… the cloud makes its own lightning.' },
+        { time: '0:27.0 – 0:34.8', source: 'volcano_storm 0:31', sentences: 'Sentences 6 to 7 + ending', text: 'Scientists call it a dirty thunderstorm…' }
+      ],
+      frames: ['0:02', '0:08', '0:14', '0:20', '0:27', '0:33'],
+      checks: [
+        { name: 'Format', value: '1080×1920 · 30 fps · H.264 + AAC' },
+        { name: 'Length and ending', value: '0:34.8 · ends 0.6 s after the last word' },
+        { name: 'Loudness', value: '−14.2 LUFS (target −14 ± 1)' },
+        { name: 'Peaks', value: '−1.4 dBTP (limit −1)' },
+        { name: 'Voice complete', value: '100% of script words heard' },
+        { name: 'Captions inside safe zone', value: 'All captions' },
+        { name: 'No black or frozen frames', value: 'None found' },
+        { name: 'Caption characters', value: 'No missing glyphs' }
+      ],
+      settings: [
+        { k: 'Voice', v: 'Narrator, calm · 34.2 s' },
+        { k: 'Characters', v: '96 billed (sentences 6–7) · 366 reused from version 1' },
+        { k: 'Template', v: 'Storytime dark v2' },
+        { k: 'Reframe', v: 'Blurred background fill' },
+        { k: 'Captions', v: 'Word highlight, lower third' },
+        { k: 'Music', v: 'ambient_03 from 0:12, lowered under voice' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

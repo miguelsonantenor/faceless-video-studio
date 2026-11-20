@@ -1,0 +1,46 @@
+[project]
+name = "fvs"
+version = "0.1.0"
+description = "Faceless Video Studio: a local core and MCP server that lets Claude turn clips into finished TikTok videos"
+readme = "docs/README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "pydantic>=2.9",
+    "structlog>=24.4",
+    "typer>=0.13",
+    "httpx>=0.27",
+    "tomli-w>=1.1",
+]
+
+[project.scripts]
+fvs = "fvs.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fvs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "media: needs FFmpeg on the PATH",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

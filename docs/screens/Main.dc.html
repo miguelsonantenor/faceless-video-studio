@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FVS dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#2B50E6}a:hover{color:#1F3FC2}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #17181C; background: #F6F6F3; font-size: 14px; line-height: 1.45">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 14px 32px; background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px">F</div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px">Faceless Video Studio</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <a href="Main.dc.html" aria-current="page" style="padding: 8px 12px; border-radius: 8px; background: #EEF1FD; color: #1F3FC2; font-weight: 600; text-decoration: none">Dashboard</a>
+      <a href="Review.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none; display: flex; align-items: center; gap: 6px">Review queue <span style="background: #FFF1D6; color: #7A4B00; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600">3</span></a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Templates</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Assets</a>
+      <a href="Settings.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Settings</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5A5D66; font-size: 13px">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>
+      <span>Core running · Claude connected</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div>
+        <p style="margin: 0 0 4px; color: #5A5D66; font-size: 13px">Started 12:01 from Claude Desktop</p>
+        <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.01em">Today's batch · 15 projects</h1>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 14px 18px; min-width: 300px; box-sizing: border-box">
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px"><span style="color: #5A5D66">Voice budget today</span><span style="font-weight: 600">6,240 of 20,000 characters</span></div>
+        <div style="margin-top: 10px; height: 8px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: 31%; height: 8px; background: #2B50E6"></div></div>
+        <div style="margin-top: 8px; font-size: 12px; color: #5A5D66">ElevenLabs: 74,100 characters left this period · resets Dec 1</div>
+      </div>
+    </div>
+
+    <section aria-label="Projects by state" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px">
+      <sc-for list="{{stages}}" as="s" hint-placeholder-count="10">
+        <div style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 10px; padding: 12px 14px">
+          <div style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 600; color: {{s.fg}}">{{s.count}}</div>
+          <div style="color: #5A5D66; font-size: 13px">{{s.label}}</div>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <section aria-labelledby="projects-h" style="flex: 999 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #E3E3DE">
+          <h2 id="projects-h" style="margin: 0; font-size: 16px; font-weight: 600">Projects</h2>
+          <span style="color: #5A5D66; font-size: 13px">Showing 11 of 15 · latest activity first</span>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; border-collapse: collapse; min-width: 640px">
+            <thead>
+              <tr style="text-align: left; color: #5A5D66; font-size: 12px">
+                <th scope="col" style="padding: 10px 20px; font-weight: 500">#</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">Video</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">State</th>
+                <th scope="col" style="padding: 10px 8px; font-weight: 500">Where it stands</th>
+                <th scope="col" style="padding: 10px 20px 10px 8px; font-weight: 500; text-align: right">Length</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{projects}}" as="p" hint-placeholder-count="11">
+                <tr style="border-top: 1px solid #EFEFEA">
+                  <td style="padding: 12px 20px; color: #5A5D66; font-variant-numeric: tabular-nums">{{p.n}}</td>
+                  <td style="padding: 12px 8px">
+                    <a href="Project.dc.html" style="color: #17181C; font-weight: 600; text-decoration: none">{{p.title}}</a>
+                    <div style="color: #5A5D66; font-size: 12px">{{p.clips}}</div>
+                  </td>
+                  <td style="padding: 12px 8px; white-space: nowrap">
+                    <span style="display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; background: {{p.bg}}; color: {{p.fg}}">{{p.status}}</span>
+                    <sc-if value="{{p.failed}}" hint-placeholder-val="{{ false }}"><span style="display: inline-block; margin-left: 4px; border-radius: 999px; padding: 3px 8px; font-size: 12px; font-weight: 600; background: #FDE2E0; color: #9B1C14">failed</span></sc-if>
+                  </td>
+                  <td style="padding: 12px 8px; color: #3D4049">{{p.detail}}</td>
+                  <td style="padding: 12px 20px 12px 8px; text-align: right; font-variant-numeric: tabular-nums; color: #3D4049">{{p.len}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+        <section aria-labelledby="activity-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="activity-h" style="margin: 0 0 4px; font-size: 16px; font-weight: 600">What Claude is doing</h2>
+          <p style="margin: 0 0 12px; color: #5A5D66; font-size: 13px">Every tool call Claude makes, in plain words. Updates live.</p>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
+            <sc-for list="{{activity}}" as="a" hint-placeholder-count="7">
+              <li style="display: flex; gap: 12px">
+                <span style="color: #5A5D66; font-size: 12px; font-variant-numeric: tabular-nums; padding-top: 1px; min-width: 36px">{{a.t}}</span>
+                <span style="font-size: 13px; color: #17181C">{{a.text}}</span>
+              </li>
+            </sc-for>
+          </ol>
+        </section>
+
+        <section aria-labelledby="jobs-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="jobs-h" style="margin: 0 0 12px; font-size: 16px; font-weight: 600">Running now</h2>
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <sc-for list="{{jobs}}" as="j" hint-placeholder-count="3">
+              <div>
+                <div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px"><span style="font-weight: 600">{{j.label}}</span><span style="color: #5A5D66">{{j.state}}</span></div>
+                <div style="margin-top: 6px; height: 6px; border-radius: 999px; background: #EEEEEA; overflow: hidden"><div style="width: {{j.pct}}; height: 6px; background: #2B50E6"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section aria-labelledby="attention-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 16px 20px">
+          <h2 id="attention-h" style="margin: 0 0 12px; font-size: 16px; font-weight: 600">Needs attention</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <div style="border: 1px solid #F3C4BF; background: #FFF6F5; border-radius: 10px; padding: 12px 14px">
+              <div style="font-weight: 600; font-size: 13px; color: #9B1C14">#9 render failed</div>
+              <p style="margin: 4px 0 8px; font-size: 13px; color: #3D4049">FFmpeg ran out of disk space. FVS cleared old renders on its own, and Claude queued the render again.</p>
+              <a href="#" style="font-size: 13px; font-weight: 600">Open job log</a>
+            </div>
+            <div style="border: 1px solid #F0D9A8; background: #FFFAF0; border-radius: 10px; padding: 12px 14px">
+              <div style="font-weight: 600; font-size: 13px; color: #7A4B00">#11 changes requested</div>
+              <p style="margin: 4px 0 8px; font-size: 13px; color: #3D4049">Your note: "hook too slow". Claude will pick it up on its next pass.</p>
+              <a href="Project.dc.html" style="font-size: 13px; font-weight: 600">Open project</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var grey = ['#EEEEEA', '#3D4049'];
+    var chip = {
+      'New': grey, 'Scripted': grey, 'Voiced': grey, 'Planned': grey, 'Skipped': grey,
+      'Rendering': ['#E8EDFF', '#1F3FC2'],
+      'Claude check': ['#E8EDFF', '#1F3FC2'],
+      'In review': ['#FFF1D6', '#7A4B00'],
+      'Changes requested': ['#FFF1D6', '#7A4B00'],
+      'Exported': ['#DDF3E4', '#1E5E35']
+    };
+    var rows = [
+      { n: '#6', title: 'Why the ocean glows at night', clips: 'ocean_drone_04.mp4', status: 'Rendering', detail: 'Render 62%', len: '0:34', failed: false },
+      { n: '#4', title: 'Ants that farm fungus', clips: 'ant_colony.mp4', status: 'In review', detail: 'All 8 checks passed', len: '0:29', failed: false },
+      { n: '#3', title: 'This volcano makes its own lightning', clips: 'volcano_storm.mov + 1 more', status: 'In review', detail: 'All 8 checks passed', len: '0:35', failed: false },
+      { n: '#5', title: 'The palm tree that walks', clips: 'walking_palm.mp4', status: 'In review', detail: '1 check failed: loudness', len: '0:33', failed: false },
+      { n: '#11', title: 'Penguins propose with pebbles', clips: 'penguin_pebble.mp4', status: 'Changes requested', detail: 'Note: hook too slow', len: '0:31', failed: false },
+      { n: '#7', title: 'The desert that blooms once a decade', clips: 'desert_bloom.mov', status: 'Voiced', detail: '7 sentences, 31.8 s, fits', len: '—', failed: false },
+      { n: '#9', title: 'Glass frogs are see-through', clips: 'glass_frog.mp4', status: 'Rendering', detail: 'Disk was full; render queued again', len: '—', failed: true },
+      { n: '#8', title: 'How bees vote on a new home', clips: 'bee_swarm.mp4', status: 'Scripted', detail: 'Script v2, shortened to fit', len: '—', failed: false },
+      { n: '#10', title: 'Mantis shrimp punches', clips: 'mantis_shrimp.mp4', status: 'New', detail: '6 scenes, no speech in clip', len: '—', failed: false },
+      { n: '#1', title: 'Why octopuses have three hearts', clips: 'octopus_reef.mp4', status: 'Exported', detail: 'Package in output folder', len: '0:41', failed: false },
+      { n: '#2', title: 'The loneliest whale in the ocean', clips: 'whale_song_02.mp4', status: 'Exported', detail: 'Package in output folder', len: '0:38', failed: false }
+    ];
+    var projects = rows.map(function (r) { return Object.assign({}, r, { bg: chip[r.status][0], fg: chip[r.status][1] }); });
+    var stages = [
+      { label: 'New', count: 4, fg: '#3D4049' },
+      { label: 'Scripted', count: 1, fg: '#3D4049' },
+      { label: 'Voiced', count: 1, fg: '#3D4049' },
+      { label: 'Planned', count: 0, fg: '#3D4049' },
+      { label: 'Rendering', count: 2, fg: '#1F3FC2' },
+      { label: 'Claude check', count: 0, fg: '#1F3FC2' },
+      { label: 'In review', count: 3, fg: '#7A4B00' },
+      { label: 'Changes requested', count: 1, fg: '#7A4B00' },
+      { label: 'Exported', count: 2, fg: '#1E5E35' },
+      { label: 'Skipped', count: 1, fg: '#3D4049' }
+    ];
+    var jobs = [
+      { label: 'Render · #6', state: '62% · about 20 s left', pct: '62%' },
+      { label: 'Clip analysis · #13 to #15', state: '1 of 3 done', pct: '33%' },
+      { label: 'Render · #9 (second try)', state: 'Queued', pct: '0%' }
+    ];
+    var activity = [
+      { t: '12:09', text: 'Marked #4 ready for review: all 8 checks passed.' },
+      { t: '12:08', text: 'Listened to #4: the transcript matches the script; music is 16 dB under the voice.' },
+      { t: '12:07', text: 'Looked at frames of #4 at 0:03, 0:12 and 0:27 with the safe zone drawn.' },
+      { t: '12:06', text: 'Storyboard for #7: the shot under sentence 2 was too dark; swapped in the drone shot.' },
+      { t: '12:05', text: 'Made the voiceover for #7: 7 sentences, 31.8 s, fits the clip.' },
+      { t: '12:04', text: 'Skipped #12: the clip is mostly a black screen.' },
+      { t: '12:01', text: 'Started the batch: 15 projects, about 9,800 voice characters, within today\'s budget.' }
+    ];
+    return { projects: projects, stages: stages, jobs: jobs, activity: activity };
+  }
+}
+</script>
+</body>
+</html>

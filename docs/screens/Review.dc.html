@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FVS review queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#2B50E6}a:hover{color:#1F3FC2}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #17181C; background: #F6F6F3; font-size: 14px; line-height: 1.45">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 14px 32px; background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px">F</div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px">Faceless Video Studio</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <a href="Main.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Dashboard</a>
+      <a href="Review.dc.html" aria-current="page" style="padding: 8px 12px; border-radius: 8px; background: #EEF1FD; color: #1F3FC2; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px">Review queue <span style="background: #FFF1D6; color: #7A4B00; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600">3</span></a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Templates</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Assets</a>
+      <a href="Settings.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Settings</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5A5D66; font-size: 13px">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>
+      <span>Core running · Claude connected</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div>
+        <h1 style="margin: 0 0 4px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.01em">Review queue · 3 waiting</h1>
+        <p style="margin: 0; color: #5A5D66">Claude has already checked each of these. Approving writes the export package from this exact file. Rejecting sends your note to Claude.</p>
+      </div>
+      <button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2B50E6; background: #2B50E6; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Approve the 2 that passed every check</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px">
+      <sc-for list="{{videos}}" as="v" hint-placeholder-count="3">
+        <article style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+          <div style="position: relative; height: 480px; border-radius: 16px; background: #14161B; overflow: hidden">
+            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6C707A; font-size: 12px">clip footage</div>
+            <div style="position: absolute; top: 48px; left: 24px; right: 40px; background: #FFFFFF; color: #14161B; border-radius: 8px; padding: 8px 10px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; line-height: 1.2; text-align: center">{{v.hook}}</div>
+            <div style="position: absolute; left: 20px; right: 36px; top: 300px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 24px; line-height: 1.15; color: #FFFFFF; text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0,0,0,0.6); text-transform: uppercase">{{v.caption}}</div>
+            <button type="button" aria-label="Play {{v.title}}" style="position: absolute; left: 50%; top: 50%; margin: -26px 0 0 -26px; width: 52px; height: 52px; border-radius: 50%; border: none; background: rgba(255,255,255,0.92); display: flex; align-items: center; justify-content: center; cursor: pointer">
+              <svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z" fill="#14161B"></path></svg>
+            </button>
+            <span style="position: absolute; right: 12px; bottom: 12px; background: rgba(0,0,0,0.6); color: #FFFFFF; font-size: 12px; border-radius: 6px; padding: 2px 8px; font-variant-numeric: tabular-nums">{{v.len}}</span>
+          </div>
+          <div>
+            <a href="Project.dc.html" style="color: #17181C; font-weight: 600; font-size: 15px; text-decoration: none">{{v.n}} {{v.title}}</a>
+            <div style="color: #5A5D66; font-size: 13px">{{v.meta}}</div>
+          </div>
+          <div style="border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 500; background: {{v.qaBg}}; color: {{v.qaFg}}">{{v.qa}}</div>
+          <div style="display: flex; gap: 10px">
+            <button type="button" style="flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Reject…</button>
+            <button type="button" style="flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid {{v.approveBorder}}; background: {{v.approveBg}}; color: {{v.approveFg}}; font: 600 14px Inter, sans-serif; cursor: pointer">{{v.approveLabel}}</button>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var pass = { qaBg: '#E9F6EE', qaFg: '#1E5E35', approveBorder: '#2B50E6', approveBg: '#2B50E6', approveFg: '#FFFFFF', approveLabel: 'Approve' };
+    var warn = { qaBg: '#FFF4E0', qaFg: '#7A4B00', approveBorder: '#CFCFC8', approveBg: '#FFFFFF', approveFg: '#17181C', approveLabel: 'Approve with note…' };
+    var videos = [
+      Object.assign({ n: '#3', title: 'This volcano makes its own lightning', hook: 'Nobody expects this from a volcano', caption: 'its own lightning', len: '0:35', meta: 'Storytime dark · Narrator, calm · 2 clips', qa: 'Passed all 8 checks' }, pass),
+      Object.assign({ n: '#4', title: 'Ants that farm fungus', hook: 'These ants have farmed for millions of years', caption: 'their own food', len: '0:29', meta: 'Storytime dark · Narrator, calm · 1 clip', qa: 'Passed all 8 checks' }, pass),
+      Object.assign({ n: '#5', title: 'The palm tree that walks', hook: 'This tree can move', caption: 'a few centimeters', len: '0:33', meta: 'Storytime dark · Narrator, calm · 1 clip', qa: '7 passed, 1 failed: loudness −12.6 LUFS, target −14 ± 1. Approving needs a note.' }, warn)
+    ];
+    return { videos: videos };
+  }
+}
+</script>
+</body>
+</html>

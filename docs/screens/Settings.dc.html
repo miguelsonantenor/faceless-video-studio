@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FVS settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F6F3}
+a{color:#2B50E6}a:hover{color:#1F3FC2}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #17181C; background: #F6F6F3; font-size: 14px; line-height: 1.45">
+  <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 14px 32px; background: #FFFFFF; border-bottom: 1px solid #E3E3DE">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div aria-hidden="true" style="width: 28px; height: 28px; border-radius: 7px; background: #17181C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px">F</div>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px">Faceless Video Studio</span>
+    </div>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+      <a href="Main.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Dashboard</a>
+      <a href="Review.dc.html" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none; display: flex; align-items: center; gap: 6px">Review queue <span style="background: #FFF1D6; color: #7A4B00; border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600">3</span></a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Templates</a>
+      <a href="#" style="padding: 8px 12px; border-radius: 8px; color: #3D4049; text-decoration: none">Assets</a>
+      <a href="Settings.dc.html" aria-current="page" style="padding: 8px 12px; border-radius: 8px; background: #EEF1FD; color: #1F3FC2; font-weight: 600; text-decoration: none">Settings</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5A5D66; font-size: 13px">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>
+      <span>Core running · Claude connected</span>
+    </div>
+  </header>
+
+  <main style="max-width: 880px; margin: 0 auto; padding: 28px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <h1 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 30px; letter-spacing: -0.01em">Settings</h1>
+
+    <section aria-labelledby="key-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+      <h2 id="key-h" style="margin: 0; font-size: 18px; font-weight: 600">ElevenLabs</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-weight: 600">API key</span>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+          <span style="font: 14px 'JetBrains Mono', monospace; padding: 10px 12px; border-radius: 10px; background: #F3F3EF; border: 1px solid #E3E3DE">sk_••••••••••••0c5d</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #1E5E35">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="#1E7A45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            Key works
+          </span>
+        </div>
+        <label for="new-key" style="font-size: 13px; color: #5A5D66; margin-top: 4px">Replace key: paste a new one from your ElevenLabs account page</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <input id="new-key" type="password" placeholder="Paste a new key" autocomplete="off" style="flex: 1 1 320px; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px 'JetBrains Mono', monospace">
+          <button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2B50E6; background: #2B50E6; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Save and test</button>
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #5A5D66">Saved only on this computer, in ~/.fvs/config.toml. FVS never shows the full key again and never gives it to Claude.</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="budget" style="font-weight: 600">Daily budget (characters)</label>
+          <input id="budget" type="number" value="20000" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-weight: 600">ElevenLabs plan</span>
+          <span style="min-height: 44px; display: flex; align-items: center; color: #3D4049">74,100 characters left · resets Dec 1</span>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #EFEFEA; padding-top: 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+          <span style="font-weight: 600">Voice profiles</span>
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Add voice profile</button>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0">
+          <sc-for list="{{voices}}" as="v" hint-placeholder-count="2">
+            <li style="display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 0; border-top: 1px solid #EFEFEA">
+              <span style="font-weight: 600; min-width: 160px">{{v.alias}}</span>
+              <span style="color: #3D4049; flex: 1">{{v.detail}}</span>
+              <span style="color: #5A5D66">{{v.flag}}</span>
+            </li>
+          </sc-for>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="mcp-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+        <h2 id="mcp-h" style="margin: 0; font-size: 18px; font-weight: 600">Connect Claude</h2>
+        <span style="display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; background: #DDF3E4; color: #1E5E35"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F9D55"></span>Claude Desktop connected · 24 tools</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span style="font-weight: 600">Claude Desktop</span>
+        <p style="margin: 0; font-size: 13px; color: #5A5D66">One click adds FVS to Claude Desktop's config file. Restart Claude Desktop afterwards. Or copy the config and paste it in yourself.</p>
+        <pre style="margin: 4px 0 0; padding: 14px 16px; border-radius: 10px; background: #F3F3EF; border: 1px solid #E3E3DE; font: 13px/1.5 'JetBrains Mono', monospace; overflow-x: auto; white-space: pre">{
+  "mcpServers": {
+    "fvs": { "command": "fvs", "args": ["mcp"] }
+  }
+}</pre>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px">
+          <button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #2B50E6; background: #2B50E6; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Add to Claude Desktop</button>
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Copy config</button>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #EFEFEA; padding-top: 14px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-weight: 600">Local MCP address, for Claude Code and other MCP apps on this computer</span>
+        <div style="display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 10px; align-items: center">
+          <span style="color: #5A5D66; font-size: 13px">Address</span>
+          <span style="font: 14px 'JetBrains Mono', monospace; padding: 10px 12px; border-radius: 10px; background: #F3F3EF; border: 1px solid #E3E3DE; overflow-x: auto">http://127.0.0.1:8787/mcp</span>
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Copy</button>
+          <span style="color: #5A5D66; font-size: 13px">Token</span>
+          <span style="font: 14px 'JetBrains Mono', monospace; padding: 10px 12px; border-radius: 10px; background: #F3F3EF; border: 1px solid #E3E3DE">••••••••••••••••7f2a</span>
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Copy</button>
+        </div>
+        <pre style="margin: 4px 0 0; padding: 12px 16px; border-radius: 10px; background: #F3F3EF; border: 1px solid #E3E3DE; font: 13px/1.5 'JetBrains Mono', monospace; overflow-x: auto; white-space: pre">claude mcp add --transport http fvs http://127.0.0.1:8787/mcp --header "Authorization: Bearer &lt;token&gt;"</pre>
+        <p style="margin: 0; font-size: 13px; color: #5A5D66">Only programs on this computer that have the token can connect. Web pages are blocked.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="folders-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+      <h2 id="folders-h" style="margin: 0; font-size: 18px; font-weight: 600">Folders</h2>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="in-folder" style="font-weight: 600">Input folder <span style="font-weight: 400; color: #5A5D66">(read only, FVS never changes it)</span></label>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <input id="in-folder" type="text" value="~/FVS/input" style="flex: 1 1 320px; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px 'JetBrains Mono', monospace">
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Choose…</button>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <label for="out-folder" style="font-weight: 600">Output folder</label>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <input id="out-folder" type="text" value="~/FVS/output" style="flex: 1 1 320px; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px 'JetBrains Mono', monospace">
+          <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Choose…</button>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="defaults-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+      <h2 id="defaults-h" style="margin: 0; font-size: 18px; font-weight: 600">Video defaults</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="template" style="font-weight: 600">Template</label>
+          <select id="template" style="min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; font: 14px Inter, sans-serif">
+            <option>Storytime dark</option>
+            <option>Clean facts</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="voice" style="font-weight: 600">Voice</label>
+          <select id="voice" style="min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; font: 14px Inter, sans-serif">
+            <option>Narrator, calm</option>
+            <option>Narrator, energetic</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="maxlen" style="font-weight: 600">Maximum length (seconds)</label>
+          <input id="maxlen" type="number" value="60" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="renders" style="font-weight: 600">Renders at the same time</label>
+          <select id="renders" style="min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; font: 14px Inter, sans-serif">
+            <option>Automatic</option>
+            <option>1</option>
+            <option>2</option>
+            <option>4</option>
+          </select>
+        </div>
+      </div>
+      <fieldset style="border: 1px solid #EFEFEA; border-radius: 10px; padding: 12px 14px; margin: 0">
+        <legend style="font-weight: 600; padding: 0 6px">TikTok safe zone (pixels kept clear in a 1080×1920 frame)</legend>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #5A5D66">Top<input type="number" value="108" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif"></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #5A5D66">Bottom<input type="number" value="320" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif"></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #5A5D66">Left<input type="number" value="60" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif"></label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #5A5D66">Right<input type="number" value="120" style="min-height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 10px; border: 1px solid #CFCFC8; font: 14px Inter, sans-serif"></label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section aria-labelledby="health-h" style="background: #FFFFFF; border: 1px solid #E3E3DE; border-radius: 12px; padding: 20px 24px">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px">
+        <h2 id="health-h" style="margin: 0; font-size: 18px; font-weight: 600">System check</h2>
+        <button type="button" style="min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #CFCFC8; background: #FFFFFF; color: #17181C; font: 600 14px Inter, sans-serif; cursor: pointer">Run again</button>
+      </div>
+      <ul style="list-style: none; margin: 0; padding: 0">
+        <sc-for list="{{checks}}" as="c" hint-placeholder-count="6">
+          <li style="display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid #EFEFEA">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" style="flex: none; position: relative; top: 2px"><path d="M2.5 7.5l3 3 6-7" fill="none" stroke="#1E7A45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="flex: 1; font-weight: 500">{{c.name}}</span>
+            <span style="color: #3D4049; text-align: right">{{c.value}}</span>
+          </li>
+        </sc-for>
+      </ul>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      voices: [
+        { alias: 'Narrator, calm', detail: 'Multilingual v2 · English · speed 1.0', flag: 'Default' },
+        { alias: 'Narrator, energetic', detail: 'Multilingual v2 · English · speed 1.1', flag: '' }
+      ],
+      checks: [
+        { name: 'FFmpeg', value: 'Found, with libass and libx264' },
+        { name: 'Whisper model', value: 'Installed (small)' },
+        { name: 'Hardware encoder', value: 'Available' },
+        { name: 'ElevenLabs key', value: 'Works' },
+        { name: 'Claude Desktop', value: 'Connected' },
+        { name: 'Disk space', value: 'Enough free space' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+ID,Requirement,Priority,Phase
+LIB-1,"Scan the input folder (optionally with subfolders) for .mp4, .mov, .m4v, .mkv and .webm files; register each new clip with an ID from a full-file hash, cached by path, size and modified time",Must,P1
+LIB-2,"Never write to, move or delete anything in the input folder",Must,P1
+LIB-3,"Detect clips that changed or disappeared, and flag the projects that use them",Should,P2
+LIB-4,Optionally watch the folder and register new clips automatically,Could,P5
+PRJ-1,"A project is one video to publish, with a number, a title, a slug made from the title, one or more clips, and an optional series name and part number",Must,P1
+PRJ-2,"Create one project per new clip on request, or one project from several clips",Must,P1
+PRJ-3,"Several projects may use the same clip, each with its own time ranges",Must,P1
+PRJ-4,"Skip a project, and reopen a skipped or exported project",Must,P1
+PRJ-5,"Save every script, voiceover and Edit Spec as a new version that is never changed; restore an earlier version as the current one",Must,P1
+ANA-1,"Read duration, resolution, frame rate, rotation, codecs, bitrate and whether there is sound",Must,P1
+ANA-2,Detect scene changes with timestamps,Must,P1
+ANA-3,Detect black and frozen stretches,Must,P1
+ANA-4,Transcribe speech in the original audio with word timings (local Whisper),Must,P1
+ANA-5,Measure the loudness of the original audio,Should,P1
+ANA-6,Cache all analysis by clip hash,Must,P1
+ANA-7,Run analysis as a background job when it would take longer than the tool time limit,Must,P1
+ANA-8,Detect letterboxing (black bars) so the crop can remove it,Should,P2
+ANA-9,Detect silences in the original audio,Should,P3
+ANA-10,Track a subject to guide the 9:16 crop,Could,P5
+SEE-1,"One guide call returns the workflow, script markup, Edit Spec schema, templates, caption styles, voices, budget and ElevenLabs quota left",Must,P1
+SEE-2,"Return frames at exact times, or N frames spread over a time range, from a clip, a render, or the current or draft Edit Spec (drawn as stills with captions and overlays, without a full render)",Must,P1
+SEE-3,Optionally draw the TikTok safe zone on returned frames,Should,P1
+SEE-4,"Return a storyboard of an Edit Spec or render: one tile per segment with its time range, clip, source time and the sentence spoken over it, as one image plus a table",Must,P1
+SEE-5,"""Listen"" to a voiceover or render: speech-recognition transcript with times, word differences from the script, a loudness-over-time chart per track (voice, music, original), silences and clipping",Must,P1
+SEE-6,"Return a project's full state in one call: script, sentence and word timings, Edit Spec, resolved timeline, renders, QA, review notes and history",Must,P1
+SEE-7,Keep every result under the size and time limits (section 5.2),Must,P1
+SEE-8,"Show the creator a render or storyboard inside Claude Desktop (MCP Apps), with a web app link as fallback",Should,P2
+SCR-1,"Store per version: title, voiceover text, hook (8 words or fewer), post caption, hashtags, language, notes and author (Claude or creator)",Must,P1
+SCR-2,"Split the voiceover into numbered sentences: one per line, or at sentence-ending punctuation",Must,P1
+SCR-3,"Support markup: `[pause 0.8]` (0.1–3 s of silence), `{1,000|one thousand}` (caption text | spoken text) and `*word*` (caption emphasis)",Must,P1
+SCR-4,Estimate the spoken length and say whether it fits the target length,Must,P1
+SCR-5,v1 supports languages written with spaces between words; scripts in other scripts are refused with a clear error,Must,P1
+SCR-6,"Store a channel style guide (tone, audience, call-to-action rules, banned words), return it with the guide, and check scripts against it",Should,P2
+SCR-7,Support `[voice: alias]` lines for two-voice scripts,Could,P3
+VO-1,Generate the voiceover sentence by sentence with ElevenLabs' with-timestamps endpoint; work out word and sentence timings for the whole voiceover,Must,P1
+VO-2,"Keep the voice consistent across sentences with request stitching, where the model supports it",Should,P1
+VO-3,Insert `[pause]` markup as exact silence and shift all later timings,Must,P1
+VO-4,"Cache each sentence by its spoken text, voice, model and settings, so unchanged sentences are never paid for again",Must,P1
+VO-5,"Support named voice profiles (voice ID, model, stability, similarity, style, speed, language), created in Settings, one of them the default",Must,P1
+VO-6,"Enforce a daily character budget; a dry run reports characters to be billed, budget left today and ElevenLabs characters left this period with the reset date",Must,P1
+VO-7,"Turn ElevenLabs errors into clear ones: bad key, quota used up, text too long, too busy (retry with backoff, at most 2 requests at once), invalid input",Must,P1
+VO-8,Apply pronunciation dictionaries,Could,P4
+EDT-1,"Propose a full Edit Spec from a template, the clip analysis and the sentence timings, choosing a shot for each sentence",Must,P1
+EDT-2,"Build segments from any of the project's clips; each segment's length is set by a cue: sentences, a word range, a number of seconds, or until the end",Must,P1
+EDT-3,"Validate a spec against its schema and rules, return every error with its path and a fix, and in a dry run return the resolved timeline",Must,P1
+EDT-4,"Accept a full spec or a patch, and version each save by content hash",Must,P1
+EDT-5,"When a clip is too short for its cue, report it and offer: slow down (no slower than 0.8×), hold the last frame, loop, or use another clip",Must,P1
+EDT-6,"Reframe to 9:16 by center crop, blurred-background fill, fit with bars or manual; with focus x, focus y and zoom",Must,P1
+EDT-7,Add slow zoom or pan per segment,Should,P1
+EDT-8,Transitions: cut and fade in P1; named crossfade styles later,Should,P1
+EDT-9,"Zoom to a point, freeze frame, and speed change per segment",Should,P3
+EDT-10,Blur a region of the source (for example burned-in subtitles the creator may remove),Could,P3
+EDT-11,"A spec stores its template name and version plus its own changes; changing a template re-plans only projects not yet exported, and a dry run shows the differences",Should,P2
+EDT-12,"Seamless loop: the end leads back into the start, with no tail",Could,P3
+CAP-1,"Build captions from the voiceover's word timings, showing the caption text from the markup and overrides",Must,P1
+CAP-2,"Caption styles: word-by-word highlight, 1–3 word chunks or full line; font, size, colors, outline, shadow, all caps and position",Must,P1
+CAP-3,Keep captions inside the safe zone and wrap lines automatically,Must,P1
+CAP-4,Show the hook text during the first seconds,Must,P1
+CAP-5,Highlight emphasis words in a second color,Should,P1
+CAP-6,Override the caption text of any word without changing the voice,Must,P1
+CAP-7,Export an .srt caption file,Must,P1
+AUD-1,"Mix the voiceover, the original sound (mute, lower or keep) and music",Must,P1
+AUD-2,Lower the original sound and music automatically while the voice speaks,Must,P1
+AUD-3,Normalise the final mix to −14 LUFS with peaks at most −1 dBTP,Must,P1
+AUD-4,"Use a music file with a chosen start point, looping and fades",Must,P1
+AUD-5,Provide a music library with mood tags and recorded licenses,Should,P2
+AUD-6,Let the original sound play at full level during a chosen segment,Should,P3
+AUD-7,Add sound effects at cue points,Could,P3
+OVL-1,Choose the cover frame,Must,P1
+OVL-2,"Text overlays cued to sentences, words or seconds, in preset styles such as a numbered list",Should,P2
+OVL-3,Logo or watermark image with position and opacity,Should,P2
+OVL-4,Cover text,Should,P2
+OVL-5,"Image overlays from the project's own assets, such as a screenshot card",Should,P2
+OVL-6,Progress bar and end card,Could,P5
+RND-1,Turn an Edit Spec into FFmpeg commands inside the engine; never accept FFmpeg arguments from Claude,Must,P1
+RND-2,"Make one render per spec version: 1080×1920, 30 fps, H.264 High, yuv420p, AAC 48 kHz, fast-start. The reviewed render is the file that is exported",Must,P1
+RND-3,"Run renders as background jobs with live progress, and let them be cancelled",Must,P1
+RND-4,"Log the exact command, the end of FFmpeg's error output and the time taken",Must,P1
+RND-5,Reuse an existing render when the spec hash and inputs are the same,Should,P1
+RND-6,"Use hardware encoding when available, with libx264 as fallback",Should,P4
+EXP-1,"On approval, write a package folder `YYYY-MM-DD_NN_slug` holding video.mp4, caption.txt (post caption and hashtags), cover.jpg, captions.srt and project.json",Must,P1
+EXP-2,"Remind the creator, in the package and on the review screen, when the post may need TikTok's AI-generated label",Should,P2
+EXP-3,Send the video to the creator's TikTok inbox as a draft,Could,P5
+QA-1,"After every render, run 8 checks: format; duration and tail (video ends 0.3–1.0 s after the last word); loudness; true peak; voice complete (render transcript matches at least 95% of script words); captions in the safe zone; no black or frozen stretch over 0.5 s; no missing caption glyphs",Must,P1
+QA-2,"Give each check pass, warn or fail, with the measured value, the limit and a fix that names the spec field to change",Must,P1
+QA-3,"Store a contact sheet of every render, shown to Claude and the creator",Must,P1
+QA-4,"Marking ready or approving with a failed check needs an override note, which is recorded",Must,P1
+BAT-1,"Run steps (voiceover, plan, render) for many projects as one job, with a result per project; one failure does not stop the others",Must,P1
+BAT-2,A batch stays within the budget unless the creator agreed in chat to go over; that agreement is recorded,Must,P1
+BAT-3,List unfinished projects by state so work can resume; provide a `resume_batch` prompt,Must,P1
+BAT-4,Jobs keep running when Claude Desktop closes and survive an app restart,Must,P1
+REV-1,"Dashboard: projects by state, running jobs, today's budget and ElevenLabs quota, a live feed of what Claude is doing in plain words, and a needs-attention list",Must,P1
+REV-2,"Project page: player, storyboard (which shot plays under which sentence), the frames Claude checked, QA results, script and spec versions, and job logs",Must,P1
+REV-3,"Review queue: approve, reject with a note, approve anyway with a note, and approve all that passed every check",Must,P1
+REV-4,"Settings: paste the API key (shown only as its last 4 characters, with Replace key and Save and test); Connect Claude (Claude Desktop config with add and copy buttons, local MCP address and token); folders; voice profiles; defaults; budget; safe-zone margins; renders at once; system check",Must,P1
+REV-5,Live updates without reloading the page,Must,P1
+REV-6,"Let the creator edit the script or caption words in the web app, saved as a new version by the creator",Should,P2
+REV-7,Compare two versions side by side,Should,P2
+REV-8,Template editor with a live preview frame,Could,P5
