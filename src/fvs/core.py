@@ -19,9 +19,12 @@ from fvs.jobs import JobQueue
 from fvs.library import Library
 from fvs.logs import configure_logging, get_logger, register_secret
 from fvs.pathguard import PathGuard
+from fvs.plan.planner import Planner
 from fvs.projects import Projects
 from fvs.script.service import ScriptService
 from fvs.settings import SettingsService, effective_renders_at_once
+from fvs.spec.service import SpecService
+from fvs.spec.templates import Templates
 from fvs.store import Database
 from fvs.voice.budget import Budget
 from fvs.voice.elevenlabs import ElevenLabs
@@ -54,6 +57,9 @@ class Core:
     scripts: ScriptService
     budget: Budget
     voice: VoiceService
+    templates: Templates
+    specs: SpecService
+    planner: Planner
 
     @classmethod
     def open(cls, home: Path | None = None, *, configure_logs: bool = True) -> Core:
@@ -100,11 +106,17 @@ class Core:
             db, projects=projects, scripts=scripts, profiles=profiles,
             client=ElevenLabs(api_key), budget=budget, jobs=jobs, settings=settings,
             activity=activity, workspace=folders.workspace)
+        templates = Templates(db)
+        templates.seed()
+        specs = SpecService(db, projects=projects, scripts=scripts, voice=voice,
+                            templates=templates, activity=activity)
+        planner = Planner(projects=projects, voice=voice, specs=specs, templates=templates,
+                          analyzer=analyzer, settings=settings)
         return cls(home=home, config=config, token=token, db=db, bus=bus, activity=activity,
                    settings=settings, jobs=jobs, guard=guard, library=library,
                    whisper=whisper, analyzer=analyzer, analysis=analysis,
                    projects=projects, profiles=profiles, scripts=scripts, budget=budget,
-                   voice=voice)
+                   voice=voice, templates=templates, specs=specs, planner=planner)
 
     def start(self) -> None:
         self.jobs.recover()

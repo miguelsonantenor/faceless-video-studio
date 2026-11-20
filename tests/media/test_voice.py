@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import functools
 import json
 import shutil
-import subprocess
 import wave
 from collections.abc import Iterator
 from pathlib import Path
@@ -15,7 +13,7 @@ import pytest
 from fvs.core import Core
 from fvs.errors import ErrorCode, FvsError
 from tests.conftest import make_project, wait_for
-from tests.fake_elevenlabs import FakeElevenLabs
+from tests.fake_elevenlabs import FakeElevenLabs, sine_mp3
 
 pytestmark = pytest.mark.media
 
@@ -25,20 +23,11 @@ SCRIPT = ("The volcano makes its own lightning.\n"
 CHARS = [36, 37, 25]  # spoken characters per sentence
 
 
-@functools.cache
-def mp3(seconds: float) -> bytes:
-    return subprocess.run(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi",
-         "-i", f"sine=frequency=300:duration={seconds:.3f}", "-ac", "1", "-ar", "44100",
-         "-c:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "-"],
-        capture_output=True, check=True).stdout
-
-
 @pytest.fixture
 def fake() -> FakeElevenLabs:
     if shutil.which("ffmpeg") is None:
         pytest.skip("FFmpeg not installed")
-    return FakeElevenLabs(mp3=mp3)
+    return FakeElevenLabs(mp3=sine_mp3)
 
 
 @pytest.fixture

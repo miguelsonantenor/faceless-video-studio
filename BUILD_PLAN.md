@@ -266,6 +266,15 @@ WP1 and WP2 can run in parallel; the web app (WP8) can start against mocked API 
 
 ### WP3: Edit Spec, validator and planner (L) — EDT-1–5, CAP-3 rules, OVL-1 field
 
+> **Status, 2026-11-20: done.** 190 tests pass, 1 skipped (the live ElevenLabs test); ruff and vulture are clean. Code: `fvs/spec/` (`models`, `resolve`, `templates`, `service`), `fvs/plan/planner.py`. Notes:
+> - Word numbers in `words` cues and caption `overrides` count caption words across the whole voiceover, from 1. A word that begins a sentence starts at that sentence's slot, so word and sentence cues line up exactly.
+> - A fade of s seconds starts s before its segment's cue start (it ends exactly on the cue); the incoming shot needs s more source. A fade on the first segment is refused.
+> - Errors: every problem in one response with `{path, problem, fix}`; `CUE_UNRESOLVED` when every problem is a clip that is too short (DS 8.6), otherwise `SPEC_INVALID`. A dry run returns the problems as data and saves nothing.
+> - Templates apply under the spec when the spec names one; the saved spec is complete and records `name@version`. Two read-only templates (`storytime_dark`, `clean_light`) and two caption styles (`bold_yellow`, `clean_white`) are seeded.
+> - `spec_hash` covers the canonical spec plus its inputs (clip contents, voiceover, music asset, caption style, `ENGINE_VERSION`); saving the same spec again is the same version.
+> - The planner splits sentences longer than the template's `max_shot_seconds` into word-range shots, never reuses part of a scene, alternates clips, and notes every compromise (slowed, crossing a cut, loop, hold). Majority-vertical projects get a centre crop.
+> - Frame times are frame/30 rounded to 4 decimals; the compiler should convert back with `round(t * 30)`.
+
 **Edit Spec models** (DS 5.1, 5.2, P1 fields): `schema_version, project, template, output.max_seconds, timeline.segments[] {clip, in, cue, motion, transition_in, fit}, reframe, audio.{original, music, loudness}, captions {style, mode, max_words, position, overrides}, hook, end.tail_seconds, cover.at_seconds`. Pydantic with `extra="forbid"` so Claude can set only what the schema allows.
 
 **Cue resolution** (DS 5.3):

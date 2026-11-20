@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import base64
+import functools
 import json
+import subprocess
 from collections.abc import Callable
 
 import httpx
@@ -11,6 +13,16 @@ import httpx
 from fvs.voice.elevenlabs import ElevenLabs
 
 SECONDS_PER_CHAR = 0.05
+
+
+@functools.cache
+def sine_mp3(seconds: float) -> bytes:
+    """A real MP3 of a tone (needs FFmpeg), for tests that decode the voice."""
+    return subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi",
+         "-i", f"sine=frequency=300:duration={seconds:.3f}", "-ac", "1", "-ar", "44100",
+         "-c:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "-"],
+        capture_output=True, check=True).stdout
 
 
 def even_alignment(text: str, seconds_per_char: float = SECONDS_PER_CHAR) -> dict:

@@ -171,6 +171,18 @@ class VoiceService:
                 "chars_to_bill": to_bill, "chars_reused": reused, "budget": budget,
                 "summary": f"Making the voiceover for {ref}; wait with fvs_job_get."}
 
+    def timings(self, proj: dict[str, Any]) -> dict[str, Any]:
+        """The current voiceover's sentence and word timings (the edit's timeline)."""
+        if not proj["voiceover_id"] or "voiceover" in json.loads(proj["stale_flags"]):
+            raise FvsError(ErrorCode.WRONG_STATE,
+                           f"Project #{proj['number']} has no voiceover for its current "
+                           "script, and the edit is timed to the voiceover.",
+                           f"Make it first with fvs_voiceover_generate for #{proj['number']}.")
+        with self.db.connect() as conn:
+            row = conn.execute("SELECT timings_path FROM voiceovers WHERE id = ?",
+                               (proj["voiceover_id"],)).fetchone()
+        return json.loads(Path(row["timings_path"]).read_text(encoding="utf-8"))
+
     def run_job(self, ctx: JobContext) -> dict[str, Any]:
         proj = self.projects.get_row(ctx.project_id or "")
         if proj["script_v"] != ctx.payload["script_version"]:
