@@ -1,4 +1,5 @@
-"""Script versions, length estimate and lifecycle (SCR-1–5, PRJ-5, DS 7)."""
+"""Projects, script versions, length estimate and lifecycle (PRJ-1, PRJ-2, PRJ-5, SCR-1–5,
+DS 7)."""
 
 from __future__ import annotations
 

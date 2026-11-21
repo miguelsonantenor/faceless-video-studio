@@ -1,4 +1,5 @@
-"""Job queue: results, failures, cancel, idempotency, restart safety (NFR-R1, MCP-6, BAT-4)."""
+"""Job queue: results, failures, cancel, idempotency, restart safety (NFR-R1, MCP-6, BAT-4,
+AC-10)."""
 
 from __future__ import annotations
 

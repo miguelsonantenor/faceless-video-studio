@@ -1,6 +1,6 @@
 """The MCP server's contract: protocol, schemas, result and error shapes, security, the
 activity feed, progress, and the stdio proxy with the official SDK client (MCP-1–11,
-AC-9, AC-11)."""
+SEE-1, SEE-6, SEE-7, AC-9, AC-11, NFR-P5)."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from fvs.core import Core
 from fvs.jobs import JobContext
 from fvs.mcp.registry import MAX_RESULT_BYTES
 from tests.conftest import add_clip
+from tests.fake_elevenlabs import FakeElevenLabs
 
 KEY = "sk_live_TESTKEY_0123456789wxyz"
 BASE = "http://127.0.0.1:8787"
@@ -187,6 +188,22 @@ def test_project_get_has_the_whole_state(client: TestClient, mcore: Core) -> Non
     assert data["script"]["sentences"][0]["i"] == 1
     assert data["renders"] == [] and data["reviews"] == [] and data["history"]
     assert data["clips"][0]["number"] == n
+
+
+def test_nfr_p5_read_tools_answer_within_2_s(client: TestClient, mcore: Core) -> None:
+    mcore.voice.client = FakeElevenLabs().client()  # the guide asks for the quota
+    p = mcore.projects.create(clips=[add_clip(mcore)], source="creator")
+    mcore.scripts.save(p["number"], voiceover="Volcanoes make lightning.", source="creator")
+    reads = [("fvs_guide", {}), ("fvs_project_get", {"project": p["number"]}),
+             ("fvs_projects_list", {}), ("fvs_settings", {}), ("fvs_assets_list", {})]
+    times = []
+    for _ in range(20):
+        for name, arguments in reads:
+            started = time.monotonic()
+            assert call(client, name, arguments)["isError"] is False
+            times.append(time.monotonic() - started)
+    times.sort()
+    assert times[int(0.95 * len(times)) - 1] <= 2.0 and times[-1] < 20, times[-5:]
 
 
 def test_settings_tool_never_shows_the_key(client: TestClient, mcore: Core) -> None:

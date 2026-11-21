@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import subprocess
+import time
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -14,6 +16,8 @@ from PIL import Image
 
 from fvs.analyze.transcribe import Whisper
 from fvs.core import Core
+from fvs.mcp.registry import MAX_RESULT_BYTES
+from fvs.mcp.tools import build_registry
 from fvs.qa import checks as qa
 from fvs.see.images import SAFE_COLOUR
 from fvs.see.service import Seen
@@ -93,8 +97,6 @@ def test_render_frames_and_spec_stills_match(score: Core, rendered: dict) -> Non
 
 
 def test_spec_stills_are_quick(score: Core, rendered: dict) -> None:
-    import time
-
     started = time.monotonic()
     score.perception.frames(source="spec", project=rendered["n"], count=6)
     assert time.monotonic() - started <= 3.0  # NFR-P2
@@ -114,7 +116,9 @@ def test_storyboard_lists_every_segment(score: Core, rendered: dict) -> None:
     proj = score.projects.get_row(rendered["n"])
     timeline = score.specs.check(proj, score.specs.current(proj)["spec"])[1]
     for source in ("spec", "render"):
+        started = time.monotonic()
         board = score.perception.storyboard(rendered["n"], source=source)
+        assert time.monotonic() - started <= 8.0  # NFR-P3
         assert [r["segment"] for r in board.data["segments"]] == \
             list(range(1, len(timeline["segments"]) + 1))
         assert board.data["segments"][0]["words"]
@@ -157,12 +161,6 @@ def test_captions_outside_a_moved_safe_zone_fail(score: Core, rendered: dict) ->
 ])
 def test_ac11_image_tools_through_mcp(score: Core, rendered: dict, name: str,
                                       args: dict) -> None:
-    import asyncio
-    import time
-
-    from fvs.mcp.registry import MAX_RESULT_BYTES
-    from fvs.mcp.tools import build_registry
-
     if name != "fvs_clip_inspect":
         args = {**args, "project": rendered["n"]}
     started = time.monotonic()

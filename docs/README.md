@@ -13,6 +13,7 @@ Local app + MCP server that lets Claude turn a folder of clips into finished Tik
 | `Faceless Video Studio - Design Specification v1.1.md` | **Same design spec as text.** The 4 diagrams are written out as Mermaid (architecture, lifecycle with all 10 states and transitions, the UC-1 sequence) and a table (roadmap) |
 | `requirements.csv` | All 99 requirements: ID, requirement, priority (Must/Should/Could), phase (P1–P5) |
 | `mockups/` | The four web app screens (Dashboard, Project, Review queue, Settings), each as a picture (`.png`) and as a page you can open in your browser (`.html`, the menu links between them work) |
+| `acceptance.md` | The two manual Phase 1 acceptance runs: AC-1 (10 clips end to end in Claude Desktop) and the 15 agent-evaluation tasks for AC-15, with what counts as a pass |
 | `screens/` | The design-canvas source of the same screens, kept as a reference for building the real UI (these don't open on their own; use `mockups/`) |
 
 ## Live versions (always the latest)

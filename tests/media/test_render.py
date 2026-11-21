@@ -1,4 +1,4 @@
-"""Full renders of real clips (RND-1–5, AC-2, AC-3, AC-5, AC-6, NFR-P1)."""
+"""Full renders of real clips (RND-1–5, AC-2 to AC-7, NFR-P1)."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import pytest
 
 from fvs.analyze.detect import detect
 from fvs.core import Core
+from fvs.qa.checks import caption_events
 from tests.conftest import wait_for
 from tests.fake_elevenlabs import FakeElevenLabs, sine_mp3
 from tests.media.conftest import number_of, open_core
@@ -109,6 +110,24 @@ def test_state_render_row_command_log_and_reuse(rcore: Core, rendered: dict) -> 
     again = rcore.renders.start([rendered["n"]])
     assert again["items"][0]["status"] == "reused"
     assert not list(Path(rendered["path"]).parent.glob("*.fvs-tmp"))
+
+
+def test_ac4_ac7_caption_timing_safe_zone_and_ending(rcore: Core, rendered: dict) -> None:
+    proj = rcore.projects.get_row(rendered["n"])
+    words = [w for s in rcore.voice.timings(proj)["sentences"] for w in s["words"]]
+    ass = next((rcore.projects.folder(proj) / "captions").glob(
+        f"{Path(rendered['path']).stem}.ass"))
+    starts = [e["start"] for e in caption_events(ass.read_text(encoding="utf-8"))
+              if e["style"] == "cap"]
+    sample = words[:: max(1, len(words) // 20)][:20]
+    for w in sample:  # AC-4: each word is lit within 100 ms of being spoken
+        assert min(abs(s - w["start"]) for s in starts) <= 0.1, w
+    with rcore.db.connect() as conn:
+        report = json.loads(conn.execute("SELECT qa_report FROM renders WHERE id = ?",
+                                         (rendered["render_id"],)).fetchone()[0])
+    checks = {c["id"]: c for c in report["checks"]}
+    assert checks["safe_zone"]["status"] == "pass", checks["safe_zone"]
+    assert checks["tail"]["status"] == "pass", checks["tail"]  # AC-7: ends 0.3–1.0 s after
 
 
 def test_nfr_p1_render_time(rendered: dict) -> None:

@@ -1,4 +1,5 @@
-"""The eight QA checks, each with a measured value, a limit and a fix (QA-1, QA-2)."""
+"""The eight QA checks, each with a measured value, a limit and a fix (QA-1, QA-2, AC-4,
+AC-7)."""
 
 from __future__ import annotations
 

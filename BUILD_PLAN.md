@@ -435,6 +435,11 @@ Build from `docs/mockups/*.html` (pixel reference) and `docs/screens/*.dc.html` 
 
 ### WP9: Phase 1 acceptance (M)
 
+> **Status, 2026-11-20: automated part done; AC-1 and AC-15 wait for the manual runs in `docs/acceptance.md`.** 298 tests pass, 1 skipped (the opt-in live ElevenLabs test: no key saved yet). Notes:
+> - `tests/unit/test_traceability.py` fails if any P1 row of `requirements.csv` or any of AC-2 to AC-14 has no test naming it, or if a test names a requirement that does not exist. All 72 P1 rows and AC-2 to AC-14 are covered. Writing it found two real gaps, now tested: three of the four reframe modes (EDT-6) and music in the mix (AUD-1), plus a real-render test for AC-4 (each caption word lit within 100 ms of being spoken, captions inside the safe zone) and AC-7 (the ending).
+> - Performance: NFR-P1 render ≤ the video's length, NFR-P2 6 spec stills ≤ 3 s, NFR-P3 storyboard ≤ 8 s, NFR-P4 analysis ≤ 10 s per minute, NFR-P5 read tools ≤ 2 s at the 95th percentile (100 calls through MCP) are tests. NFR-P6 was measured once (too long for the suite): 20 projects, voiceover → plan → render with QA, in one batch in **8.8 min** (limit 30), with the fake voice (no network time) and 25 s videos; about 14 min scaled to 40 s videos.
+> - The 10-clip fixture set for AC-1 is the creator's own clips (or the 7 test clips + 3), run in Claude Desktop with a real key; AC-15's 15 tasks and pass checks are in `docs/acceptance.md`.
+
 - Traceability test: read `docs/requirements.csv` and fail if any P1 row has no test or code reference (each test names the requirement IDs it covers).
 - Fixture set: the 7 clips (landscape, portrait, no sound, 4K, VFR phone, 8 s, 3 min) + 3 more to make 10.
 - Run AC-1 end to end in Claude Desktop with `process_folder`: 10 clips → 10 projects In review, no manual editing.

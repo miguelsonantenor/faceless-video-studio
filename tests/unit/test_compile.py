@@ -1,4 +1,5 @@
-"""Compiler structure, graph escaping and the caption file (RND-1, CAP-1–6, DS 5.5)."""
+"""Compiler structure, graph escaping and the caption file (RND-1, CAP-1–6, EDT-6–8,
+AUD-1–3, DS 5.5)."""
 
 from __future__ import annotations
 
@@ -19,18 +20,22 @@ CLIPS = {1: {"id": "c1", "duration_s": 20.0, "content_hash": "h1", "path": "/in/
              "has_audio": 0}}
 
 
-def _plan(measured: dict | None = None, **over: object):
+MUSIC = {"id": "a1", "name": "rain", "duration_s": 60.0, "path": "/assets/music/rain.mp3"}
+
+
+def _plan(measured: dict | None = None, music: dict | None = None, **over: object):
     spec = EditSpec.model_validate({"project": 1, "timeline": {"segments": [
         {"clip": 1, "in": 2, "cue": {"sentences": [1]}, "motion": "zoom_in"},
         {"clip": 2, "in": 1.3, "cue": {"sentences": [2]}, "transition_in": "fade",
          "fit": "slow"},  # 1.7 s left for 2.0 s (slot + fade): slowed to 0.85×
         {"clip": 1, "in": 9, "cue": {"until": "end"}, "motion": "pan_left"}]}, **over})
     timeline = resolve(spec, Context(timings=TIMINGS, clips=CLIPS,
-                                     caption_styles=set(CAPTION_STYLES)))
+                                     caption_styles=set(CAPTION_STYLES),
+                                     assets={MUSIC["name"]: MUSIC} if music else {}))
     inputs = Inputs(clips=CLIPS, voice_path=Path("voice/v.wav"), timings=TIMINGS,
                     style=CAPTION_STYLES["bold_yellow"], font="Montserrat",
                     safe=SafeZoneSettings(), hook_text="Volcanoes make lightning",
-                    fonts_dir="../../assets/fonts")
+                    fonts_dir="../../assets/fonts", music=music)
     return compile_render(spec, timeline, inputs, ass_name="captions/x.ass",
                           out_name="renders/x.mp4", measured=measured)
 
@@ -88,6 +93,33 @@ def test_second_pass_applies_the_measurement() -> None:
 def test_mute_drops_the_original_sound() -> None:
     graph = " ".join(_plan(audio={"original": {"mode": "mute"}}).args)
     assert "[orig" not in graph and "[voice" in graph
+
+
+def _graph(**over: object) -> str:
+    plan = _plan(**over)
+    return plan.args[plan.args.index("-filter_complex") + 1]
+
+
+def test_every_reframe_mode() -> None:
+    crop = _graph(reframe={"mode": "center_crop"})
+    assert "boxblur" not in crop and "crop=1080:1920:x=(iw-ow)*0.5:y=(ih-oh)*0.5" in crop
+    bars = _graph(reframe={"mode": "fit_bars"})
+    assert "pad=1080:1920:(ow-iw)/2:(oh-ih)/2:black" in bars
+    manual = _graph(reframe={"mode": "manual", "focus_x": 0.2, "focus_y": 0.7, "zoom": 1.5})
+    assert "scale=w=1620:h=2880" in manual and "x=(iw-ow)*0.2:y=(ih-oh)*0.7" in manual
+
+
+def test_music_is_mixed_faded_and_ducked_under_the_voice() -> None:
+    plan = _plan(music=MUSIC, audio={"music": {"asset": "rain", "start_at": 12,
+                                                "gain_db": -20, "fade_in": 1}})
+    args = plan.args
+    k = args.index("/assets/music/rain.mp3")
+    assert args[k - 5:k] == ["-stream_loop", "-1", "-ss", "12.000", "-i"]
+    graph = args[args.index("-filter_complex") + 1]
+    music = graph[graph.index("[4:a]"):]
+    assert "volume=-20dB" in music and "afade=t=in:d=1" in music and "afade=t=out" in music
+    assert "volume=volume='1-0.80047*" in music  # lowered while the voice speaks (AUD-2)
+    assert "amix=inputs=3" in graph  # voice, original sound and music (AUD-1)
 
 
 def test_duck_volume_expression() -> None:
