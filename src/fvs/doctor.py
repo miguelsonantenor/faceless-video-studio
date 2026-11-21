@@ -42,12 +42,17 @@ class Check:
 
 def claude_desktop_config_path() -> Path:
     if sys.platform == "win32":
-        # The Microsoft Store build of Claude reads its config from its package folder,
-        # not from %APPDATA%; prefer that folder when the Store build is installed.
+        # Where Claude reads its config, newest layout first: the Store build's moved
+        # data folder (%LOCALAPPDATA%\Claude-Data\claude_<id>), then its package folder,
+        # then the classic %APPDATA%\Claude.
         local = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
-        store = sorted((local / "Packages").glob("Claude_*/LocalCache/Roaming/Claude"))
+        found = [*sorted((local / "Claude-Data").glob("claude_*/claude_desktop_config.json")),
+                 *sorted((local / "Packages").glob(
+                     "Claude_*/LocalCache/Roaming/Claude/claude_desktop_config.json"))]
+        if found:
+            return found[0]
         roaming = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "Claude"
-        return (store[0] if store else roaming) / "claude_desktop_config.json"
+        return roaming / "claude_desktop_config.json"
     if sys.platform == "darwin":
         return Path.home() / "Library/Application Support/Claude/claude_desktop_config.json"
     return Path.home() / ".config/Claude/claude_desktop_config.json"

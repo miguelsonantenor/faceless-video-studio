@@ -83,7 +83,7 @@ def test_cli_key_from_env_tests_saves_and_never_prints(
     assert load_config(home).elevenlabs_api_key.get_secret_value() == KEY
 
 
-def test_claude_desktop_config_of_the_store_build_wins(
+def test_claude_desktop_config_where_claude_reads_it(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
@@ -91,6 +91,11 @@ def test_claude_desktop_config_of_the_store_build_wins(
     name = "claude_desktop_config.json"
     assert claude_desktop_config_path() == tmp_path / "Roaming" / "Claude" / name
     store = tmp_path / "Local" / "Packages" / "Claude_pzs8sxrjxfjjc" / "LocalCache" / \
-        "Roaming" / "Claude"
-    store.mkdir(parents=True)
-    assert claude_desktop_config_path() == store / name
+        "Roaming" / "Claude" / name
+    store.parent.mkdir(parents=True)
+    store.write_text("{}", encoding="utf-8")
+    assert claude_desktop_config_path() == store
+    moved = tmp_path / "Local" / "Claude-Data" / "claude_pzs8sxrjxfjjc" / name
+    moved.parent.mkdir(parents=True)
+    moved.write_text("{}", encoding="utf-8")
+    assert claude_desktop_config_path() == moved  # the newest layout wins
