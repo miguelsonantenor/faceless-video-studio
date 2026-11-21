@@ -49,6 +49,23 @@ class Quota:
         return max(0, self.limit - self.used)
 
 
+def verify_key(key: str) -> None:
+    """Check a key with ElevenLabs before it is saved (Settings and `fvs key`)."""
+    if len(key) < 20:
+        raise FvsError(ErrorCode.SETTINGS_INVALID, "That does not look like an ElevenLabs "
+                       "API key.", "Copy the whole key from your ElevenLabs account page and "
+                       "paste it again.")
+    try:
+        resp = httpx.get(SUBSCRIPTION_URL, timeout=10, headers={"xi-api-key": key})
+    except httpx.HTTPError:
+        raise FvsError(ErrorCode.VOICE_BUSY, "Could not reach ElevenLabs to test the key; "
+                       "nothing was saved.", "Check the internet connection and try "
+                       "again.") from None
+    if resp.status_code != 200:
+        raise FvsError(ErrorCode.VOICE_AUTH, "ElevenLabs did not accept this key; nothing "
+                       "was saved.", "Copy the key again from your ElevenLabs account page.")
+
+
 class ElevenLabs:
     def __init__(self, api_key: Callable[[], str | None], *,
                  transport: httpx.BaseTransport | None = None,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 import webbrowser
+from pathlib import Path
 
 import typer
 
@@ -60,16 +61,33 @@ def token() -> None:
 
 
 @app.command()
-def key() -> None:
-    """Save the ElevenLabs API key in ~/.fvs/config.toml (readable only by you)."""
+def key(
+    from_env: bool = typer.Option(
+        False, "--from-env", help="Take ELEVENLABS_API_KEY from the environment or from "
+        "--env-file (where `npx @elevenlabs/cli onboard` saves it) instead of asking."),
+    env_file: Path = typer.Option(Path(".env"), help="The .env file --from-env reads."),  # noqa: B008
+) -> None:
+    """Test the ElevenLabs API key and save it in ~/.fvs/config.toml (readable only by you).
+    The key is never printed."""
     from pydantic import SecretStr
 
-    from fvs.config import save_config
+    from fvs.config import key_from_env, save_config
+    from fvs.errors import FvsError
+    from fvs.voice.elevenlabs import verify_key
 
     config = ensure_config()
-    value = typer.prompt("ElevenLabs API key", hide_input=True).strip()
-    if not value:
-        raise typer.Exit(1)
+    if from_env:
+        value = key_from_env(env_file)
+        if value is None:
+            typer.echo(f"No ELEVENLABS_API_KEY in the environment or in {env_file}.", err=True)
+            raise typer.Exit(1)
+    else:
+        value = typer.prompt("ElevenLabs API key", hide_input=True).strip()
+    try:
+        verify_key(value)
+    except FvsError as exc:
+        typer.echo(f"{exc.message} {exc.fix}", err=True)
+        raise typer.Exit(1) from None
     config.elevenlabs_api_key = SecretStr(value)
     path = save_config(config)
     typer.echo(f"Saved the key ending {config.api_key_last4} to {path}. "

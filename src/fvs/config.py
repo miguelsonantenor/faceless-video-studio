@@ -90,6 +90,22 @@ def restrict_to_user(path: Path) -> bool:
     return True
 
 
+ENV_KEY = "ELEVENLABS_API_KEY"
+
+
+def key_from_env(env_file: Path) -> str | None:
+    """``ELEVENLABS_API_KEY`` from the environment, else from a ``.env`` file (where
+    ``npx @elevenlabs/cli onboard`` saves it). For ``fvs key --from-env`` only: the core
+    itself reads the key from config.toml, wherever it is started."""
+    value = os.environ.get(ENV_KEY, "").strip()
+    if not value and env_file.is_file():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            name, sep, rest = line.strip().removeprefix("export ").partition("=")
+            if sep and name.strip() == ENV_KEY:
+                value = rest.split(" #")[0].strip().strip("'\"")
+    return value or None
+
+
 def load_config(home: Path | None = None) -> Config:
     path = config_path(home)
     if not path.exists():

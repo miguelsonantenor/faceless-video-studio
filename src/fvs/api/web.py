@@ -16,7 +16,6 @@ import time
 from pathlib import Path
 from typing import Annotated, Any
 
-import httpx
 from fastapi import Body, FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 from PIL import Image
@@ -32,7 +31,7 @@ from fvs.logs import register_secret
 from fvs.mcp.tools import ProjectGetArgs, project_get
 from fvs.projects import STATE_LABELS, project_public
 from fvs.see.stills import STILL_H, STILL_W
-from fvs.voice.elevenlabs import SUBSCRIPTION_URL
+from fvs.voice.elevenlabs import verify_key
 
 CLAUDE_SEEN_S = 300  # "Claude connected" when it called a tool in the last 5 minutes
 THUMB = (STILL_W // 2, STILL_H // 2)
@@ -246,21 +245,7 @@ def add_web_routes(app: FastAPI, core: Core) -> None:  # noqa: C901 - one route 
     @app.put("/api/key")
     async def replace_key(data: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
         key = str(data.get("key", "")).strip()
-        if len(key) < 20:
-            raise FvsError(ErrorCode.SETTINGS_INVALID, "That does not look like an "
-                           "ElevenLabs API key.", "Copy the whole key from your ElevenLabs "
-                           "account page and paste it again.")
-        try:
-            resp = await asyncio.to_thread(httpx.get, SUBSCRIPTION_URL, timeout=10,
-                                           headers={"xi-api-key": key})
-        except httpx.HTTPError:
-            raise FvsError(ErrorCode.VOICE_BUSY, "Could not reach ElevenLabs to test the "
-                           "key; nothing was saved.", "Check the internet connection and "
-                           "try again.") from None
-        if resp.status_code != 200:
-            raise FvsError(ErrorCode.VOICE_AUTH, "ElevenLabs did not accept this key; "
-                           "nothing was saved.", "Copy the key again from your ElevenLabs "
-                           "account page.")
+        await asyncio.to_thread(verify_key, key)
         register_secret(key)
         core.config.elevenlabs_api_key = SecretStr(key)
         save_config(core.config, core.home)
