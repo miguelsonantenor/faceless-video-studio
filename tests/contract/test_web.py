@@ -166,3 +166,12 @@ def test_web_app_needs_the_session(core: Core) -> None:
         assert anon.get("/").status_code == 401
         signed = anon.get(f"/auth?t={core.token}")
         assert signed.status_code == 200 and '<div id="root">' in signed.text
+
+
+def test_a_browser_without_the_session_gets_a_readable_page(core: Core) -> None:
+    with TestClient(create_app(core), base_url=BASE) as anon:
+        page = anon.get("/", headers={"Accept": "text/html,application/xhtml+xml"})
+        assert page.status_code == 401 and page.headers["content-type"].startswith("text/html")
+        assert "fvs open" in page.text and core.token not in page.text
+        api = anon.get("/api/projects", headers={"Accept": "text/html"})
+        assert api.status_code == 401 and api.json()["code"] == "UNAUTHORIZED"

@@ -80,6 +80,9 @@ class SecurityMiddleware:
                               "without an Origin header.")
             return
         if scope["path"] not in OPEN_PATHS and not self._authorised(headers):
+            if _is_page_visit(scope, headers):
+                await _send(send, 401, "text/html; charset=utf-8", SIGN_IN_PAGE)
+                return
             await self._reply(send, 401, "UNAUTHORIZED",
                               "The FVS session token is missing or wrong.",
                               "Send 'Authorization: Bearer <token>' with the token from "
@@ -104,7 +107,33 @@ class SecurityMiddleware:
     @staticmethod
     async def _reply(send: Any, status: int, code: str, message: str, fix: str) -> None:
         body = json.dumps({"code": code, "message": message, "fix": fix}).encode()
-        await send({"type": "http.response.start", "status": status,
-                    "headers": [(b"content-type", b"application/json"),
-                                (b"content-length", str(len(body)).encode())]})
-        await send({"type": "http.response.body", "body": body})
+        await _send(send, status, "application/json", body)
+
+
+def _is_page_visit(scope: dict[str, Any], headers: dict[str, str]) -> bool:
+    """A browser opening a page (not the API, MCP or a script fetching data)."""
+    return (scope["method"] == "GET" and "text/html" in headers.get("accept", "")
+            and not scope["path"].startswith(("/api/", "/mcp")))
+
+
+async def _send(send: Any, status: int, content_type: str, body: bytes) -> None:
+    await send({"type": "http.response.start", "status": status,
+                "headers": [(b"content-type", content_type.encode()),
+                            (b"content-length", str(len(body)).encode())]})
+    await send({"type": "http.response.body", "body": body})
+
+
+# Shown to a browser without the session cookie. It never contains the token.
+SIGN_IN_PAGE = b"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Faceless Video Studio</title><style>
+body{margin:0;background:#F6F6F3;color:#17181C;font:15px/1.5 system-ui,sans-serif}
+main{max-width:560px;margin:12vh auto;padding:28px 32px;background:#fff;
+border:1px solid #E3E3DE;border-radius:12px}h1{font-size:22px;margin:0 0 8px}
+code{background:#F3F3EF;border:1px solid #E3E3DE;border-radius:6px;padding:2px 6px}
+p{color:#3D4049}</style></head><body><main>
+<h1>Faceless Video Studio is running</h1>
+<p>This browser is not signed in. To open the web app, run this in a terminal:</p>
+<p><code>fvs open</code></p>
+<p>It opens this page signed in. Only programs on this computer with the session token
+can use FVS.</p></main></body></html>"""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from pathlib import Path
 
 import httpx
@@ -9,7 +10,7 @@ from typer.testing import CliRunner
 
 from fvs.cli import app
 from fvs.config import Config, ensure_token, key_from_env, load_config
-from fvs.doctor import Check, run_doctor, worst
+from fvs.doctor import Check, claude_desktop_config_path, run_doctor, worst
 
 
 def test_doctor_reports_every_area() -> None:
@@ -80,3 +81,16 @@ def test_cli_key_from_env_tests_saves_and_never_prints(
     r = runner.invoke(app, ["key", "--from-env", "--env-file", str(env)])
     assert r.exit_code == 0 and "ending abcd" in r.output and KEY not in r.output
     assert load_config(home).elevenlabs_api_key.get_secret_value() == KEY
+
+
+def test_claude_desktop_config_of_the_store_build_wins(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
+    name = "claude_desktop_config.json"
+    assert claude_desktop_config_path() == tmp_path / "Roaming" / "Claude" / name
+    store = tmp_path / "Local" / "Packages" / "Claude_pzs8sxrjxfjjc" / "LocalCache" / \
+        "Roaming" / "Claude"
+    store.mkdir(parents=True)
+    assert claude_desktop_config_path() == store / name
