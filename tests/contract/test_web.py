@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from fvs.api import create_app, web
 from fvs.core import Core
-from tests.conftest import add_clip, make_project, voiced_project
+from tests.conftest import add_clip, make_project, voiced_project, wait_for
 from tests.fake_elevenlabs import FakeElevenLabs
 
 BASE = "http://127.0.0.1:8787"
@@ -223,3 +223,14 @@ def test_a_browser_without_the_session_gets_a_readable_page(core: Core) -> None:
         assert "fvs open" in page.text and core.token not in page.text
         api = anon.get("/api/projects", headers={"Accept": "text/html"})
         assert api.status_code == 401 and api.json()["code"] == "UNAUTHORIZED"
+
+
+def test_shutdown_needs_fvs_serve_and_then_stops_it(client: TestClient, core: Core) -> None:
+    r = client.post("/api/shutdown")
+    assert r.status_code == 409 and "fvs serve" in r.json()["message"]
+    stopped: list[bool] = []
+    client.app.state.request_shutdown = lambda: stopped.append(True)
+    assert client.post("/api/shutdown").json() == {"stopping": True, "active_jobs": 0}
+    wait_for(lambda: stopped == [True], timeout=3)  # after the answer has gone out
+    assert client.get("/api/status").json()["pid"] > 0
+    assert "FVS is stopping" in core.activity.recent(1)[0]["summary"]

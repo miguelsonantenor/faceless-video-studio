@@ -1,11 +1,15 @@
-"""The ``fvs`` command: serve, doctor, open, token, mcp."""
+"""The ``fvs`` command: serve, stop, doctor, open, token, mcp."""
 
 from __future__ import annotations
 
+import os
+import signal
 import sys
+import time
 import webbrowser
 from pathlib import Path
 
+import httpx
 import typer
 
 from fvs.config import HOST, ensure_config, ensure_token
@@ -15,6 +19,8 @@ app = typer.Typer(add_completion=False, no_args_is_help=True,
                   help="Faceless Video Studio: the local core for Claude-made TikTok videos.")
 
 _ICON = {"ok": "OK  ", "warn": "WARN", "fail": "FAIL"}
+STOP_GRACE_S = 5  # open connections (the web app's live stream) get this long to close
+STOP_WAIT_S = 20.0  # how long `fvs stop` waits before ending the process
 
 
 @app.command()
@@ -30,7 +36,52 @@ def serve(
 
     core = Core.open()
     api = create_app(core, extra_origins=dev_origin)
-    uvicorn.run(api, host=HOST, port=core.config.port, log_config=None, access_log=False)
+    # An open web app keeps a live-update stream open; without a limit, stopping would
+    # wait for it forever.
+    server = uvicorn.Server(uvicorn.Config(
+        api, host=HOST, port=core.config.port, log_config=None, access_log=False,
+        timeout_graceful_shutdown=STOP_GRACE_S))
+    api.state.request_shutdown = lambda: setattr(server, "should_exit", True)
+    server.run()
+
+
+@app.command()
+def stop(force: bool = typer.Option(
+        False, "--force", help="Stop even while jobs run; they continue at the next start.")
+         ) -> None:
+    """Stop the running core, its job workers and the web app."""
+    config = ensure_config()
+    with httpx.Client(base_url=f"http://{HOST}:{config.port}", timeout=10,
+                      headers={"Authorization": f"Bearer {ensure_token()}"}) as client:
+        try:
+            resp = client.get("/api/status")
+        except httpx.HTTPError:
+            typer.echo("FVS is not running.")
+            return
+        status = resp.json()
+        if resp.status_code != 200 or status.get("core") != "running":
+            typer.echo(f"Something else answers on port {config.port}: "
+                       f"{status.get('message', resp.status_code)}", err=True)
+            raise typer.Exit(1)
+        if status["active_jobs"] and not force:
+            typer.echo(f"{status['active_jobs']} job(s) are queued or running (renders, "
+                       "voiceovers). Wait for them, or run `fvs stop --force`: they are "
+                       "picked up again the next time FVS starts.", err=True)
+            raise typer.Exit(1)
+        try:
+            client.post("/api/shutdown")
+        except httpx.HTTPError:
+            pass  # it may already be going
+        deadline = time.monotonic() + STOP_WAIT_S
+        while time.monotonic() < deadline:
+            try:
+                client.get("/api/health", timeout=1)
+            except httpx.HTTPError:
+                typer.echo("FVS stopped.")
+                return
+            time.sleep(0.3)
+        os.kill(status["pid"], signal.SIGTERM)  # last resort: it did not stop by itself
+        typer.echo(f"FVS did not stop within {STOP_WAIT_S:.0f} s, so it was ended.")
 
 
 @app.command()

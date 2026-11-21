@@ -99,3 +99,43 @@ def test_claude_desktop_config_where_claude_reads_it(
     moved.parent.mkdir(parents=True)
     moved.write_text("{}", encoding="utf-8")
     assert claude_desktop_config_path() == moved  # the newest layout wins
+
+
+def _core_answers(monkeypatch: pytest.MonkeyPatch, handler: object) -> None:
+    real = httpx.Client
+
+    def client(**kw: object) -> httpx.Client:
+        return real(transport=httpx.MockTransport(handler), **kw)
+
+    monkeypatch.setattr(httpx, "Client", client)
+
+
+def test_stop_when_nothing_runs(home: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def refused(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("refused")
+
+    _core_answers(monkeypatch, refused)
+    r = CliRunner().invoke(app, ["stop"])
+    assert r.exit_code == 0 and "not running" in r.output
+
+
+def test_stop_waits_for_jobs_unless_forced(home: Path,
+                                          monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+    stopped = {"now": False}
+
+    def core(request: httpx.Request) -> httpx.Response:
+        calls.append(f"{request.method} {request.url.path}")
+        if request.url.path == "/api/shutdown":
+            stopped["now"] = True
+            return httpx.Response(200, json={"stopping": True})
+        if stopped["now"]:
+            raise httpx.ConnectError("gone")
+        return httpx.Response(200, json={"core": "running", "active_jobs": 1, "pid": 1})
+
+    _core_answers(monkeypatch, core)
+    r = CliRunner().invoke(app, ["stop"])
+    assert r.exit_code == 1 and "fvs stop --force" in r.output
+    assert "POST /api/shutdown" not in calls
+    r = CliRunner().invoke(app, ["stop", "--force"])
+    assert r.exit_code == 0 and "FVS stopped." in r.output and "POST /api/shutdown" in calls

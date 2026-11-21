@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from collections.abc import AsyncIterator, Iterable
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
@@ -102,7 +103,23 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
             "schema_version": core.db.schema_version(),
             "workers": core.jobs.n_workers,
             "active_jobs": len(core.jobs.active()),
+            "pid": os.getpid(),  # for `fvs stop`, if the core does not stop by itself
         }
+
+    @app.post("/api/shutdown")
+    async def shutdown() -> dict[str, Any]:
+        """`fvs stop`: finish this request, then stop the server; running jobs are asked
+        to stop and are queued again at the next start."""
+        stop = getattr(app.state, "request_shutdown", None)
+        if stop is None:
+            raise FvsError(ErrorCode.WRONG_STATE, "This core was not started by `fvs serve`, "
+                           "so it cannot stop itself.", "Stop the program that started it.")
+        active = len(core.jobs.active())
+        core.activity.add("FVS is stopping (fvs stop)."
+                          + (f" {active} job(s) continue at the next start." if active else ""),
+                          source="creator")
+        asyncio.get_running_loop().call_later(0.2, stop)
+        return {"stopping": True, "active_jobs": active}
 
     @app.get("/api/doctor")
     async def doctor(online: bool = False) -> dict[str, Any]:
