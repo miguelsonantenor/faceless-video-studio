@@ -101,7 +101,8 @@ def test_stages_appear_in_the_graph() -> None:
     assert "x=(iw-ow)*(1-t/1.7000)" in graph  # pan left
     assert "setpts=PTS/0.85" in graph and "atempo" not in graph  # clip 2 is silent
     assert "xfade=transition=fade:duration=0.3:offset=1.2" in graph
-    assert graph.count("setsar=1,fps=30[seg") == 3  # xfade needs a constant frame rate
+    assert graph.count("setsar=1,fps=30,sidedata=mode=delete:type=DISPLAYMATRIX[seg") == 3
+    # (a constant frame rate for xfade; no phone rotation tag in the output)
     assert "concat=n=2:v=1:a=0" in graph
     assert "subtitles=filename=captions/x.ass:fontsdir=../../assets/fonts" in graph
     assert graph.count("aevalsrc") == 1  # clip 2 has no sound: silence for its segment
@@ -171,6 +172,18 @@ def test_ass_header_style_and_hook() -> None:
     assert "Style: cap,Montserrat,86,&H00FFFFFF,&H004DE1FF" in text
     assert ",2,60,120,420,1" in text  # bottom centre, safe-zone margins
     assert "Dialogue: 0,0:00:00.00,0:00:02.50,hook,,0,0,0,,VOLCANOES MAKE LIGHTNING" in text
+
+
+def test_ass_hook_banner_is_a_solid_box() -> None:
+    """red_banner: white text on a red box, like the creator's own videos."""
+    text = build_ass(timings=TIMINGS, captions=Captions(mode="off"),
+                     style=CAPTION_STYLES["red_banner"], font="Inter",
+                     hook_text="Best value for money!!", hook_seconds=5.0, end_s=4.9,
+                     safe=SafeZoneSettings())
+    hook = next(line for line in text.splitlines() if line.startswith("Style: hook"))
+    assert ",&H002B26E3,&H002B26E3,-1,0,0,0,100,100,0,0,3,14,0,8," in hook
+    events = [line for line in text.splitlines() if line.startswith("Dialogue")]
+    assert events == ["Dialogue: 0,0:00:00.00,0:00:04.90,hook,,0,0,0,,Best value for money!!"]
 
 
 def test_ass_word_highlight_moves_through_each_chunk() -> None:

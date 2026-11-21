@@ -69,6 +69,12 @@ def build_ass(*, timings: dict[str, Any], captions: Any, style: dict[str, Any], 
             return f"{{\\c{emph}}}{text}{{\\c{base}}}"
         return text
 
+    # A style with hook_box draws the hook as white text on a solid banner (BorderStyle 3,
+    # the box in OutlineColour, padded by Outline); otherwise it is outlined text.
+    box = style.get("hook_box")
+    hook_look = (f"{colour(box)},{colour(box)},-1,0,0,0,100,100,0,0,3,14,0" if box else
+                 f"{colour(style['outline_color'])},&H80000000,-1,0,0,0,100,100,0,0,1,"
+                 f"{style['outline'] + 1},{style['shadow']}")
     align, margin_v = {"lower_third": (2, safe.bottom + 100), "center": (5, 0),
                        "upper_third": (8, safe.top + 260)}[captions.position]
     bold = -1 if style.get("weight", 400) >= 600 else 0
@@ -82,10 +88,8 @@ def build_ass(*, timings: dict[str, Any], captions: Any, style: dict[str, Any], 
         f"Style: cap,{font},{style['size']},{base},{hi},{colour(style['outline_color'])},"
         f"&H80000000,{bold},0,0,0,100,100,0,0,1,{style['outline']},{style['shadow']},"
         f"{align},{safe.left},{safe.right},{margin_v},1",
-        f"Style: hook,{font},{int(style['size'] * 1.05)},{base},{hi},"
-        f"{colour(style['outline_color'])},&H80000000,-1,0,0,0,100,100,0,0,1,"
-        f"{style['outline'] + 1},{style['shadow']},8,{safe.left},{safe.right},"
-        f"{safe.top + 120},1",
+        f"Style: hook,{font},{int(style['size'] * 1.05)},{base},{hi},{hook_look},8,"
+        f"{safe.left},{safe.right},{safe.top + 120},1",
         "", "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]

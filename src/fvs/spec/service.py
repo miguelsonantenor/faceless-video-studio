@@ -32,7 +32,7 @@ from fvs.timeutil import now_iso
 from fvs.voice.service import VoiceService
 
 # Part of every spec hash: raise it when the compiler's output for the same spec changes.
-ENGINE_VERSION = 3  # 3: the clips' frame rate and a higher encode quality
+ENGINE_VERSION = 4  # 3: clips' frame rate, higher quality; 4: no rotation tag
 
 
 def merge_patch(target: Any, patch: Any) -> Any:

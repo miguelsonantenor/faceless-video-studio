@@ -45,12 +45,31 @@ BUILT_IN_TEMPLATES: dict[str, dict[str, Any]] = {
     },
 }
 
+BUILT_IN_TEMPLATES["perfume_review"] = {
+    "description": "Hand-held fragrance review, like the creator's own videos: one "
+                   "continuous shot of the bottle, a red hook banner at the top for 5 s, "
+                   "no running captions, the voice over the clip's muted sound.",
+    "spec": {
+        "reframe": {"mode": "center_crop"},
+        "audio": {"original": {"mode": "mute"}},
+        "captions": {"style": "red_banner", "mode": "off", "max_words": 3,
+                     "position": "upper_third"},
+        "hook": {"seconds": 5.0},
+        "end": {"tail_seconds": 0.8},
+    },
+    "plan": {"max_shot_seconds": 6.0, "motion": ["none"], "transition": "cut"},
+}
+
 # Named caption styles (CAP-2). Fonts are bundled with the app (NFR-X1, WP4).
 CAPTION_STYLES: dict[str, dict[str, Any]] = {
     "bold_yellow": {"font": "Montserrat", "weight": 900, "size": 86, "all_caps": True,
                     "color": "#FFFFFF", "highlight_color": "#FFE14D",
                     "emphasis_color": "#FF5A4D", "outline": 6, "outline_color": "#000000",
                     "shadow": 2},
+    "red_banner": {"font": "Inter", "weight": 700, "size": 56, "all_caps": False,
+                   "color": "#FFFFFF", "highlight_color": "#FFFFFF",
+                   "emphasis_color": "#FFE14D", "outline": 3, "outline_color": "#000000",
+                   "shadow": 0, "hook_box": "#E3262B"},
     "clean_white": {"font": "Inter", "weight": 700, "size": 72, "all_caps": False,
                     "color": "#FFFFFF", "highlight_color": "#FFFFFF",
                     "emphasis_color": "#7FD1FF", "outline": 3, "outline_color": "#1A1A1A",

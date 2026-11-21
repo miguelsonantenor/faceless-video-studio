@@ -125,9 +125,12 @@ def _segment_video(g: Graph, idx: int, seg: dict[str, Any], spec: EditSpec,
         post.append(f("loop", loop=-1, size=frames, start=0))
     if seg["hold_s"]:
         post.append(f("tpad", stop_mode="clone", stop_duration=seg["hold_s"]))
-    # The closing fps keeps the frame rate set after crop/trim, which xfade needs.
+    # The closing fps keeps the frame rate set after crop/trim, which xfade needs. The
+    # picture is already upright, so a phone's rotation tag must not reach the output
+    # (it would turn the video sideways in players).
     post += [f("trim", duration=length), "setpts=PTS-STARTPTS", f("format", "yuv420p"),
-             f("setsar", 1), f("fps", inputs.fps)]
+             f("setsar", 1), f("fps", inputs.fps),
+             f("sidedata", mode="delete", type="DISPLAYMATRIX")]
     return g.one([label], post, "seg")
 
 
