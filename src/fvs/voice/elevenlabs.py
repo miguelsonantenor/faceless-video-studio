@@ -2,6 +2,7 @@
 
 - ``POST /v1/text-to-speech/{voice_id}/with-timestamps`` for one sentence at a time.
 - ``GET /v1/user/subscription`` for the quota left and its reset time.
+- ``GET /v1/models`` for the speech models the account can use (Settings → Voices).
 - At most 2 requests at once across the whole app (DS 10.5).
 - 429, 5xx and network errors: up to 3 retries after 2, 4 and 8 s (or Retry-After),
   then ``VOICE_BUSY``. Key, quota, length and input errors are never retried.
@@ -122,6 +123,18 @@ class ElevenLabs:
                       alignment=data.get("alignment") or data.get("normalized_alignment"),
                       request_id=resp.headers.get("request-id"),
                       chars_billed=int(billed) if billed else len(text))
+
+    def models(self) -> list[dict[str, Any]]:
+        """The text-to-speech models this account can use, as ElevenLabs lists them, so
+        a new model (v3, and later ones) can be picked without an FVS update."""
+        out = []
+        for m in self._request("GET", "/v1/models").json():
+            if not m.get("can_do_text_to_speech", True):
+                continue
+            out.append({"model_id": m["model_id"], "name": m.get("name") or m["model_id"],
+                        "description": m.get("description") or "",
+                        "languages": len(m.get("languages") or [])})
+        return out
 
     def quota(self) -> Quota:
         data = self._request("GET", "/v1/user/subscription").json()

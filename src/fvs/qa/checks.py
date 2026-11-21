@@ -57,14 +57,14 @@ def _secs(ts: str) -> float:
 # ---- 1. format --------------------------------------------------------------------------
 
 
-def check_format(info: Probe) -> Check:
+def check_format(info: Probe, fps: int = FPS) -> Check:
     got = (f"{info.video_codec} {info.width}×{info.height} {info.fps:g} fps {info.pix_fmt}, "
            f"{info.audio_codec} {info.sample_rate} Hz")
     ok = (info.video_codec == "h264" and (info.width, info.height) == (W, H)
-          and abs(info.fps - FPS) < 0.01 and info.pix_fmt == "yuv420p"
+          and abs(info.fps - fps) < 0.01 and info.pix_fmt == "yuv420p"
           and info.audio_codec == "aac" and info.sample_rate == 48_000)
     return Check("format", "Format", "pass" if ok else "fail", got,
-                 "h264 1080×1920 30 fps yuv420p, aac 48000 Hz",
+                 f"h264 1080×1920 {fps} fps yuv420p, aac 48000 Hz",
                  None if ok else "Render again; if it repeats, run `fvs doctor` to check "
                                  "the FFmpeg build.")
 

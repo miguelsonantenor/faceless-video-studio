@@ -33,7 +33,7 @@ def run_qa(*, final: Path, folder: Path, ass_name: str | None, ass_text: str | N
     last_word = max((w["end"] for s in inputs.timings["sentences"] for w in s["words"]),
                     default=0.0)
     checks = [
-        qa.check_format(info),
+        qa.check_format(info, inputs.fps),
         qa.check_tail(info.duration_s, last_word),
         qa.check_loudness(loud.get("integrated_lufs"), spec.audio.loudness.target_lufs),
         qa.check_peak(loud.get("true_peak_dbtp"), spec.audio.loudness.true_peak_db),

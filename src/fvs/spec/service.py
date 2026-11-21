@@ -23,6 +23,7 @@ from fvs.atomic import write_text_atomic
 from fvs.errors import ErrorCode, FvsError
 from fvs.projects import Projects, next_state
 from fvs.script.service import ScriptService
+from fvs.settings import SettingsService
 from fvs.spec.models import SCHEMA_VERSION, EditSpec, migrate, schema_errors
 from fvs.spec.resolve import Context, resolve
 from fvs.spec.templates import Templates, deep_merge
@@ -31,7 +32,7 @@ from fvs.timeutil import now_iso
 from fvs.voice.service import VoiceService
 
 # Part of every spec hash: raise it when the compiler's output for the same spec changes.
-ENGINE_VERSION = 2
+ENGINE_VERSION = 3  # 3: the clips' frame rate and a higher encode quality
 
 
 def merge_patch(target: Any, patch: Any) -> Any:
@@ -49,13 +50,15 @@ def merge_patch(target: Any, patch: Any) -> Any:
 
 class SpecService:
     def __init__(self, db: Database, *, projects: Projects, scripts: ScriptService,
-                 voice: VoiceService, templates: Templates, activity: ActivityLog) -> None:
+                 voice: VoiceService, templates: Templates, activity: ActivityLog,
+                 settings: SettingsService | None = None) -> None:
         self.db = db
         self.projects = projects
         self.scripts = scripts
         self.voice = voice
         self.templates = templates
         self.activity = activity
+        self.settings = settings  # for the output frame rate, part of every hash
 
     # ---- reading ---------------------------------------------------------------------
 
@@ -113,6 +116,7 @@ class SpecService:
         music = spec.audio.music
         inputs = {
             "engine": ENGINE_VERSION,
+            "frame_rate": self.settings.get().video.frame_rate if self.settings else 0,
             "voiceover": ctx.timings.get("voiceover_id"),
             "clips": {n: ctx.clips[n]["content_hash"] for n in used},
             "music": ({k: ctx.assets[music.asset][k] for k in ("id", "path")}

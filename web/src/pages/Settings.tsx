@@ -2,13 +2,14 @@
 // export, video defaults and the system check. The key is never shown in full.
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, ApiError, useLive, type Overview, type SettingsPayload } from "../api";
-import { day, ErrorNote, Mark, n, Toast } from "../ui";
+import { day, ErrorNote, Mark, n, OpenFolder, Toast } from "../ui";
 
 type Values = Record<string, string>;
 
 interface Profile {
   alias: string; voice_id: string; model_id: string; speed: number; language: string;
-  is_default: boolean;
+  is_default: boolean; stability?: number; similarity?: number; style?: number;
+  words_per_minute?: number;
 }
 
 export function Settings({ overview }: { overview: Overview | null }) {
@@ -26,7 +27,9 @@ export function Settings({ overview }: { overview: Overview | null }) {
           <ElevenLabs data={data} overview={overview} onSaved={saved} />
           <ConnectClaude data={data} onSaved={saved} />
           <Folders data={data} onSaved={saved} />
+          <InspirationSets onSaved={saved} />
           <VideoDefaults data={data} onSaved={saved} />
+          <Performance data={data} onSaved={saved} />
           <SystemCheck />
         </>
       )}
@@ -136,27 +139,52 @@ function ElevenLabs({ data, overview, onSaved }: { data: SettingsPayload;
   );
 }
 
+interface Model { model_id: string; name: string; description: string; languages: number }
+
+/** The speech models the ElevenLabs account offers (v2, v3 and any newer one). */
+function ModelSelect({ value, onChange, models, id }: { value: string;
+  onChange: (v: string) => void; models: Model[] | null; id?: string }) {
+  const known = models?.some((m) => m.model_id === value);
+  return (
+    <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+      {!known && <option value={value}>{value}</option>}
+      {models?.map((m) => (
+        <option key={m.model_id} value={m.model_id}>{m.name}</option>
+      ))}
+    </select>
+  );
+}
+
 function Voices({ onSaved }: { onSaved: (m: string) => void }) {
   const { data, reload } = useLive<{ items: Profile[] }>("/api/voices");
+  const { data: models, error: modelsError } = useLive<{ items: Model[] }>("/api/voice-models");
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ alias: "", voice_id: "", speed: "1.0", language: "en" });
+  const [form, setForm] = useState({ alias: "", voice_id: "", model_id: "eleven_multilingual_v2",
+    speed: "1.0", language: "en" });
   const action = useAction();
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm({ ...form, [k]: e.target.value });
 
-  const save = (alias: string, body: Partial<Profile>, makeDefault: boolean, msg: string) =>
+  // The whole profile goes back, so nothing (speed, words a minute) falls back to a default.
+  const save = (p: Profile, changes: Partial<Profile>, makeDefault: boolean, msg: string) =>
     action.run(async () => {
+      const { alias, is_default: _d, ...rest } = { ...p, ...changes };
       await api(`/api/voices/${encodeURIComponent(alias)}?make_default=${makeDefault}`,
-        { method: "PUT", body });
+        { method: "PUT", body: rest });
       reload();
       onSaved(msg);
     });
 
   const add = (e: FormEvent) => {
     e.preventDefault();
-    save(form.alias, { voice_id: form.voice_id, speed: Number(form.speed),
-      language: form.language }, false, `Voice profile ${form.alias} saved.`);
-    setAdding(false);
+    action.run(async () => {
+      await api(`/api/voices/${encodeURIComponent(form.alias)}?make_default=false`,
+        { method: "PUT", body: { voice_id: form.voice_id, model_id: form.model_id,
+          speed: Number(form.speed), language: form.language } });
+      reload();
+      onSaved(`Voice profile ${form.alias} saved.`);
+      setAdding(false);
+    });
   };
 
   return (
@@ -165,6 +193,8 @@ function Voices({ onSaved }: { onSaved: (m: string) => void }) {
         <b>Voice profiles</b>
         <button onClick={() => setAdding(!adding)}>{adding ? "Cancel" : "Add voice profile"}</button>
       </div>
+      {modelsError && <p className="small muted">The model list needs a working key; you can
+        still type a model ID by adding a profile.</p>}
       {adding && (
         <form className="grid-fields" onSubmit={add}>
           <label className="field">Name (lowercase, no spaces)
@@ -172,6 +202,10 @@ function Voices({ onSaved }: { onSaved: (m: string) => void }) {
           </label>
           <label className="field">ElevenLabs voice ID
             <input required className="mono" value={form.voice_id} onChange={set("voice_id")} />
+          </label>
+          <label className="field">Model
+            <ModelSelect value={form.model_id} models={models?.items ?? null}
+              onChange={(v) => setForm({ ...form, model_id: v })} />
           </label>
           <label className="field">Speed (0.7 to 1.2)
             <input type="number" min={0.7} max={1.2} step={0.05} value={form.speed}
@@ -186,18 +220,24 @@ function Voices({ onSaved }: { onSaved: (m: string) => void }) {
       <ErrorNote error={action.error} />
       <ul className="plain">
         {data?.items.map((p) => (
-          <li key={p.alias} style={{ alignItems: "center" }}>
-            <b style={{ minWidth: 160 }}>{p.alias}</b>
-            <span className="muted" style={{ flex: 1 }}>{p.model_id} · {p.language} · speed{" "}
-              {p.speed.toFixed(2)}</span>
+          <li key={p.alias} style={{ alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <b style={{ minWidth: 120 }}>{p.alias}</b>
+            <label className="small muted" style={{ display: "flex", alignItems: "center",
+              gap: 8 }}>Model
+              <ModelSelect value={p.model_id} models={models?.items ?? null}
+                onChange={(v) => save(p, { model_id: v }, false,
+                  `${p.alias} now uses ${models?.items.find((m) => m.model_id === v)?.name ?? v}.`)} />
+            </label>
+            <span className="muted" style={{ flex: 1 }}>{p.language} · speed {p.speed.toFixed(2)}</span>
             {p.is_default ? <span className="muted">Default</span> : (
-              <button onClick={() => save(p.alias, { voice_id: p.voice_id, model_id: p.model_id,
-                speed: p.speed, language: p.language }, true, `${p.alias} is now the default.`)}>
+              <button onClick={() => save(p, {}, true, `${p.alias} is now the default.`)}>
                 Make default</button>
             )}
           </li>
         ))}
       </ul>
+      <span className="tiny muted">Eleven v3 is the most expressive; it does not stitch
+        sentences together, so each sentence is made on its own.</span>
     </div>
   );
 }
@@ -283,14 +323,28 @@ function Folders({ data, onSaved }: { data: SettingsPayload; onSaved: (m: string
   return (
     <form className="card pad-l" aria-labelledby="f-h" onSubmit={save}>
       <h2 id="f-h">Folders and export</h2>
-      <label className="field">
-        <span>Input folder <span className="muted" style={{ fontWeight: 400 }}>(read only, FVS
-          never changes it)</span></span>
-        <input className="mono" value={data.folders.input} readOnly />
-      </label>
-      <label className="field">Output folder
-        <input className="mono" value={output} onChange={(e) => setOutput(e.target.value)} />
-      </label>
+      <div className="folder-row">
+        <label className="field">
+          <span>Input folder <span className="muted" style={{ fontWeight: 400 }}>(your clips;
+            read only, FVS never changes it)</span></span>
+          <input className="mono" value={data.folders.input} readOnly />
+        </label>
+        <OpenFolder folder="input">Open</OpenFolder>
+      </div>
+      <div className="folder-row">
+        <label className="field">Output folder
+          <input className="mono" value={output} onChange={(e) => setOutput(e.target.value)} />
+        </label>
+        <OpenFolder folder="output">Open</OpenFolder>
+      </div>
+      <div className="folder-row">
+        <label className="field">
+          <span>Inspiration folder <span className="muted" style={{ fontWeight: 400 }}>(example
+            videos for Claude to study; read only)</span></span>
+          <input className="mono" value={data.folders.inspiration} readOnly />
+        </label>
+        <OpenFolder folder="inspiration">Open</OpenFolder>
+      </div>
       <fieldset>
         <legend>When a video is approved</legend>
         <label style={{ display: "flex", gap: 8, alignItems: "center", minHeight: 32 }}>
@@ -310,9 +364,122 @@ function Folders({ data, onSaved }: { data: SettingsPayload; onSaved: (m: string
   );
 }
 
+// ---- inspiration sets ---------------------------------------------------------------------
+
+interface InspirationVideo { number: number; file_name: string; content_hash: string;
+  note: string }
+interface InspirationSet { name: string; folder: string; videos: InspirationVideo[] }
+
+function InspirationSets({ onSaved }: { onSaved: (m: string) => void }) {
+  const { data, error, reload } = useLive<{ folder: string; default: string;
+    sets: InspirationSet[] }>("/api/inspiration");
+  const action = useAction();
+  const sets = data?.sets.filter((s) => s.videos.length) ?? [];
+
+  const choose = (name: string) => action.run(async () => {
+    await api("/api/settings", { method: "PATCH", body: { "defaults.inspiration_set": name } });
+    reload();
+    onSaved(name ? `Claude now follows the ${name} examples.` : "No inspiration set chosen.");
+  });
+  const note = (set: string, v: InspirationVideo, text: string) => {
+    if (text === v.note) return;
+    action.run(async () => {
+      await api(`/api/inspiration/${encodeURIComponent(set)}/videos/${v.number}/note`,
+        { method: "PUT", body: { note: text } });
+      reload();
+      onSaved("Note saved.");
+    });
+  };
+
+  return (
+    <section className="card pad-l" aria-labelledby="in-h">
+      <div className="section-head">
+        <h2 id="in-h">Inspiration</h2>
+        <div className="buttons">
+          <button onClick={reload}>Look again</button>
+          <OpenFolder folder="inspiration">Open inspiration folder</OpenFolder>
+        </div>
+      </div>
+      <p className="small muted">Put videos whose style you want in the inspiration folder,
+        one subfolder per style (for example <span className="mono">perfume</span>). Claude
+        measures their length, pace, hooks and sound, looks at their frames, and makes your
+        videos the same way. Their footage is never used.</p>
+      <ErrorNote error={error ?? action.error} />
+      {data && (
+        <label className="field" style={{ maxWidth: 360 }}>Claude follows
+          <select value={data.default} onChange={(e) => choose(e.target.value)}>
+            <option value="">No set</option>
+            {sets.map((s) => <option key={s.name} value={s.name}>
+              {s.name} ({s.videos.length} video{s.videos.length === 1 ? "" : "s"})</option>)}
+          </select>
+        </label>
+      )}
+      {data && !sets.length && <p className="muted small">No example videos yet in
+        {" "}<span className="mono">{data.folder}</span>.</p>}
+      {sets.map((s) => (
+        <div key={s.name} className="divide stack-s">
+          <b>{s.name}</b>
+          <div className="insp-videos">
+            {s.videos.map((v) => (
+              <div key={v.content_hash} className="insp-video">
+                <img alt="" loading="lazy" src={`/api/inspiration/${encodeURIComponent(s.name)}`
+                  + `/thumbs/${v.content_hash}.jpg`} />
+                <label className="field small">{v.number}. {v.file_name}
+                  <input defaultValue={v.note} placeholder="What to take from it, e.g. the hook"
+                    onBlur={(e) => note(s.name, v, e.target.value.trim())} />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// ---- performance --------------------------------------------------------------------------
+
+interface Hardware { gpu_encoder: string | null; whisper: string; device: "gpu" | "cpu" }
+
+function Performance({ data, onSaved }: { data: SettingsPayload;
+  onSaved: (m: string) => void }) {
+  const { data: hw, reload } = useLive<Hardware>("/api/hardware");
+  const action = useAction();
+  const device = String(data.settings["performance.device"]);
+  const pick = (value: string) => action.run(async () => {
+    await api("/api/settings", { method: "PATCH", body: { "performance.device": value } });
+    reload();
+    onSaved(value === "gpu" ? "Renders and speech recognition use the GPU."
+      : "Renders and speech recognition use the CPU only.");
+  });
+  const option = (value: string, label: string, detail: string) => (
+    <label style={{ display: "flex", gap: 8, alignItems: "flex-start", minHeight: 32 }}>
+      <input type="radio" name="device" style={{ minHeight: 0, marginTop: 4 }}
+        checked={device === value} disabled={action.busy} onChange={() => pick(value)} />
+      <span>{label}<br /><span className="small muted">{detail}</span></span>
+    </label>
+  );
+  const gpuDetail = !hw ? "Checking the GPU…"
+    : (hw.gpu_encoder ? `Renders encode on the GPU (${hw.gpu_encoder})`
+      : "No working GPU encoder was found, so renders still encode on the CPU")
+      + (hw.device === "gpu" ? `; speech recognition runs on the ${hw.whisper}.` : ".");
+  return (
+    <section className="card pad-l" aria-labelledby="pf-h">
+      <h2 id="pf-h">Performance</h2>
+      <fieldset>
+        <legend>Where heavy work runs</legend>
+        {option("gpu", "GPU (recommended)", gpuDetail)}
+        {option("cpu", "CPU only", "Slower. Use it if the GPU is busy with something else "
+          + "or renders fail on it.")}
+      </fieldset>
+      <ErrorNote error={action.error} />
+    </section>
+  );
+}
+
 // ---- video defaults -----------------------------------------------------------------------
 
-const DEFAULT_KEYS = ["defaults.template", "video.target_min_seconds",
+const DEFAULT_KEYS = ["defaults.template", "video.frame_rate", "video.target_min_seconds",
   "video.target_max_seconds", "video.max_seconds", "render.renders_at_once",
   "safe_zone.top", "safe_zone.bottom", "safe_zone.left", "safe_zone.right"];
 
@@ -362,6 +529,12 @@ function VideoDefaults({ data, onSaved }: { data: SettingsPayload;
             {(templates?.items ?? [{ name: v["defaults.template"], description: "" }]).map((t) => (
               <option key={t.name} value={t.name}>{t.name.replace(/_/g, " ")}</option>
             ))}
+          </select>
+        </label>
+        <label className="field">Frame rate
+          <select value={v["video.frame_rate"]} onChange={set("video.frame_rate")}>
+            <option value="0">Same as my clips (up to 60 fps)</option>
+            {[24, 25, 30, 50, 60].map((k) => <option key={k} value={k}>{k} fps</option>)}
           </select>
         </label>
         <label className="field">Renders at the same time

@@ -2,7 +2,8 @@
 
 The ``small`` model (DS 10.5) lives in ``~/.fvs/models``. It is never downloaded
 implicitly: ``fvs whisper-download`` fetches it once. It runs on an NVIDIA GPU in float16
-when one and the ``gpu`` extra's CUDA libraries are present, otherwise on the CPU in int8.
+when one and the ``gpu`` extra's CUDA libraries are present and Settings → Performance
+is GPU (the default), otherwise on the CPU in int8.
 The model is loaded on first use and unloaded after a few idle minutes, which also frees
 the GPU memory. One transcription runs at a time.
 """
@@ -83,11 +84,14 @@ def best_device() -> Device:
 
 
 class Whisper:
-    def __init__(self, models_dir: Path, *, idle_unload_s: float = IDLE_UNLOAD_S) -> None:
+    def __init__(self, models_dir: Path, *, idle_unload_s: float = IDLE_UNLOAD_S,
+                 use_gpu: Callable[[], bool] = lambda: True) -> None:
         self.models_dir = models_dir
         self.idle_unload_s = idle_unload_s
+        self.use_gpu = use_gpu  # Settings → Performance, read at each load
         self._model: Any = None
         self._device: Device | None = None  # set when the model loads
+        self._for_gpu = True  # the preference the loaded model was loaded under
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
 
@@ -117,7 +121,13 @@ class Whisper:
 
     # ---- transcription -------------------------------------------------------------
 
+    def _preferred(self) -> Device:
+        return best_device() if self.use_gpu() else CPU
+
     def _load(self) -> Any:
+        gpu = self.use_gpu()
+        if self._model is not None and self._for_gpu != gpu:
+            self._model, self._device = None, None  # the setting changed: load again
         if self._model is None:
             path = self.model_path()
             if path is None:
@@ -129,7 +139,7 @@ class Whisper:
                 )
             from faster_whisper import WhisperModel
 
-            device = best_device()
+            device = self._preferred()
             try:
                 self._model = WhisperModel(str(path), device=device.name,
                                            compute_type=device.compute_type)
@@ -140,13 +150,16 @@ class Whisper:
                 device = CPU
                 self._model = WhisperModel(str(path), device="cpu",
                                            compute_type=CPU.compute_type)
-            self._device = device
+            self._device, self._for_gpu = device, gpu
         return self._model
 
     @property
     def device(self) -> Device:
-        """Where transcription runs: the device the model loaded on, else the best one."""
-        return self._device or best_device()
+        """Where transcription runs: the device the model loaded on, else the one the
+        setting picks."""
+        if self._device is not None and self._for_gpu == self.use_gpu():
+            return self._device
+        return self._preferred()
 
     def _schedule_unload(self) -> None:
         if self._timer is not None:

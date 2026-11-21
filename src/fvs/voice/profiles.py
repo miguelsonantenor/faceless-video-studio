@@ -12,8 +12,11 @@ from fvs.activity import ActivityLog, Source
 from fvs.errors import ErrorCode, FvsError
 from fvs.store import Database
 
-# Models that accept previous_request_ids for stitching (VO-2); Eleven v3 does not.
-NO_STITCHING_MODELS = frozenset({"eleven_v3"})
+# Models known to accept previous_request_ids for stitching (VO-2). Eleven v3 does not;
+# newer models (v4 and on) are made sentence by sentence until they are known to.
+STITCHING_MODELS = frozenset({"eleven_multilingual_v2", "eleven_turbo_v2",
+                              "eleven_turbo_v2_5", "eleven_flash_v2", "eleven_flash_v2_5",
+                              "eleven_monolingual_v1", "eleven_multilingual_v1"})
 
 
 class VoiceProfile(BaseModel):
@@ -36,7 +39,7 @@ class VoiceProfile(BaseModel):
 
     @property
     def stitching(self) -> bool:
-        return self.model_id not in NO_STITCHING_MODELS
+        return self.model_id in STITCHING_MODELS
 
     def cache_key(self, spoken_text: str) -> str:
         """VO-4: the same text, voice, model and settings is never paid for twice."""

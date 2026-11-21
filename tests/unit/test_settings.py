@@ -17,8 +17,17 @@ def test_defaults_match_the_plan(core: Core) -> None:
     assert s.voice.daily_budget_chars == 20_000
     assert s.voice.budget_reset_time == "00:00"
     assert s.export.destination == "folder"
+    assert s.performance.device == "gpu"  # the GPU by default; CPU is a choice
+    assert s.video.frame_rate == 0  # the clips' own rate
     assert (s.safe_zone.top, s.safe_zone.bottom, s.safe_zone.left, s.safe_zone.right) == (
         108, 320, 60, 120)
+
+
+def test_frame_rate_is_the_clips_or_a_tiktok_rate(core: Core) -> None:
+    core.settings.update({"video.frame_rate": 60})
+    with pytest.raises(FvsError) as info:
+        core.settings.update({"video.frame_rate": 12})
+    assert "0 (same as the clips) or 24-60" in info.value.message
 
 
 def test_update_saves_logs_and_publishes(core: Core, monkeypatch: pytest.MonkeyPatch) -> None:

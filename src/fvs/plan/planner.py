@@ -22,6 +22,7 @@ from typing import Any
 
 from fvs.analyze.analyzer import Analyzer
 from fvs.errors import FvsError
+from fvs.inspiration import Inspiration
 from fvs.projects import Projects
 from fvs.settings import SettingsService
 from fvs.spec.models import End
@@ -53,13 +54,15 @@ def _subtract(start: float, end: float, bad: list[dict[str, float]]) -> list[lis
 
 class Planner:
     def __init__(self, *, projects: Projects, voice: VoiceService, specs: SpecService,
-                 templates: Templates, analyzer: Analyzer, settings: SettingsService) -> None:
+                 templates: Templates, analyzer: Analyzer, settings: SettingsService,
+                 inspiration: Inspiration | None = None) -> None:
         self.projects = projects
         self.voice = voice
         self.specs = specs
         self.templates = templates
         self.analyzer = analyzer
         self.settings = settings
+        self.inspiration = inspiration
 
     # ---- shots -----------------------------------------------------------------------
 
@@ -174,7 +177,14 @@ class Planner:
             shots = [{"clip": n, "start": 0.0, "end": float(c["duration_s"] or 0), "used": 0,
                       "order": 0} for n, c in clips.items()]
         tail = base.get("end", {}).get("tail_seconds", End().tail_seconds)
-        pieces = self._pieces(timings, tail, plan["max_shot_seconds"])
+        max_shot = plan["max_shot_seconds"]
+        profile = (self.inspiration.cached_profile(settings.defaults.inspiration_set)
+                   if self.inspiration else None)
+        if profile and profile.get("target_shot_s"):  # INS-3: pace like the examples
+            max_shot = profile["target_shot_s"]
+            notes.append(f"Shots are up to {max_shot:.1f} s, the median shot of the "
+                         f"inspiration set {profile['set']!r}.")
+        pieces = self._pieces(timings, tail, max_shot)
 
         transition = plan["transition"]
         fade = (transition.get("seconds", 0.3)

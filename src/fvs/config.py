@@ -38,6 +38,8 @@ class Folders(BaseModel):
     input: Path = Field(default_factory=lambda: default_root() / "input")
     workspace: Path = Field(default_factory=lambda: default_root() / "workspace")
     output: Path = Field(default_factory=lambda: default_root() / "output")
+    # Example videos the creator likes (INS-1): read only, never footage.
+    inspiration: Path = Field(default_factory=lambda: default_root() / "inspiration")
 
     @property
     def assets(self) -> Path:
@@ -48,6 +50,7 @@ class Folders(BaseModel):
             input=self.input.expanduser(),
             workspace=self.workspace.expanduser(),
             output=self.output.expanduser(),
+            inspiration=self.inspiration.expanduser(),
         )
 
 
@@ -128,6 +131,7 @@ def save_config(config: Config, home: Path | None = None) -> Path:
             "input": str(config.folders.input),
             "workspace": str(config.folders.workspace),
             "output": str(config.folders.output),
+            "inspiration": str(config.folders.inspiration),
         },
     }
     if config.elevenlabs_api_key is not None:

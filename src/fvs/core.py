@@ -19,6 +19,7 @@ from fvs.batch import BatchService
 from fvs.config import Config, ensure_config, ensure_token, fvs_home
 from fvs.events import EventBus
 from fvs.export.exporter import Exporter
+from fvs.inspiration import Inspiration
 from fvs.jobs import JobQueue
 from fvs.library import Library
 from fvs.logs import configure_logging, get_logger, register_secret
@@ -71,6 +72,8 @@ class Core:
     renders: RenderService
     perception: Perception
     reviews: ReviewService
+    exporter: Exporter
+    inspiration: Inspiration
     batches: BatchService
     assets: AssetService
 
@@ -84,7 +87,7 @@ class Core:
             register_secret(config.elevenlabs_api_key.get_secret_value())
 
         folders = config.folders.expanded()
-        for d in (folders.input, folders.workspace, folders.output):
+        for d in (folders.input, folders.workspace, folders.output, folders.inspiration):
             d.mkdir(parents=True, exist_ok=True)  # creating an empty input folder is fine
         for sub in WORKSPACE_DIRS:
             (folders.workspace / sub).mkdir(parents=True, exist_ok=True)
@@ -102,7 +105,8 @@ class Core:
                         workspace=folders.workspace)
         guard = PathGuard(folders)
         library = Library(db, guard, activity)
-        whisper = Whisper(home / "models")
+        whisper = Whisper(home / "models",
+                          use_gpu=lambda: settings.get().performance.device == "gpu")
         analyzer = Analyzer(folders.workspace / "cache", whisper)
         analysis = AnalysisService(library, analyzer, jobs, activity)
         projects = Projects(db, library, activity, folders.workspace)
@@ -122,9 +126,13 @@ class Core:
         templates = Templates(db)
         templates.seed()
         specs = SpecService(db, projects=projects, scripts=scripts, voice=voice,
-                            templates=templates, activity=activity)
+                            templates=templates, activity=activity, settings=settings)
+        inspiration = Inspiration(db, folder=folders.inspiration,
+                                  cache_root=folders.workspace / "cache" / "inspiration",
+                                  analyzer=analyzer, jobs=jobs, settings=settings,
+                                  activity=activity)
         planner = Planner(projects=projects, voice=voice, specs=specs, templates=templates,
-                          analyzer=analyzer, settings=settings)
+                          analyzer=analyzer, settings=settings, inspiration=inspiration)
         fonts_dir = folders.assets / "fonts"
         install_fonts(Path(str(resources.files("fvs") / "assets_bundled" / "fonts")),
                       fonts_dir)
@@ -150,7 +158,8 @@ class Core:
                    whisper=whisper, analyzer=analyzer, analysis=analysis,
                    projects=projects, profiles=profiles, scripts=scripts, budget=budget,
                    voice=voice, templates=templates, specs=specs, planner=planner,
-                   renders=renders, perception=perception, reviews=reviews,
+                   renders=renders, perception=perception, reviews=reviews, exporter=exporter,
+                   inspiration=inspiration,
                    batches=batches, assets=assets)
 
     def start(self) -> None:

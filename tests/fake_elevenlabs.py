@@ -33,6 +33,19 @@ def even_alignment(text: str, seconds_per_char: float = SECONDS_PER_CHAR) -> dic
                                             for i in range(len(text))]}
 
 
+# What GET /v1/models answers, trimmed: two speech models and one that only does
+# speech-to-speech.
+MODELS = [
+    {"model_id": "eleven_multilingual_v2", "name": "Eleven Multilingual v2",
+     "description": "Most life-like", "can_do_text_to_speech": True,
+     "languages": [{"language_id": "en"}, {"language_id": "fr"}]},
+    {"model_id": "eleven_v3", "name": "Eleven v3", "description": "Most expressive",
+     "can_do_text_to_speech": True, "languages": [{"language_id": "en"}]},
+    {"model_id": "eleven_english_sts_v2", "name": "Eleven English v2",
+     "can_do_text_to_speech": False},
+]
+
+
 class FakeElevenLabs:
     def __init__(self, mp3: Callable[[float], bytes] | None = None) -> None:
         self.mp3 = mp3  # seconds -> MP3 bytes; fake bytes when None
@@ -50,6 +63,8 @@ class FakeElevenLabs:
             return nxt
         if request.url.path == "/v1/user/subscription":
             return httpx.Response(200, json=self.quota)
+        if request.url.path == "/v1/models":
+            return httpx.Response(200, json=MODELS)
         body = json.loads(request.content)
         self.calls.append({**body, "path": request.url.path,
                            "output_format": request.url.params.get("output_format"),

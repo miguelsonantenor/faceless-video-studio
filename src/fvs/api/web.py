@@ -10,7 +10,9 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import os
 import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -40,6 +42,16 @@ WEB_DIST = Path(__file__).resolve().parent.parent / "webapp"
 # for module scripts.
 WEB_TYPES = {".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2",
              ".woff": "font/woff", ".svg": "image/svg+xml", ".html": "text/html"}
+
+
+def open_in_file_manager(path: Path) -> None:
+    """Show a folder in Explorer, Finder or the Linux file manager."""
+    if sys.platform == "win32":
+        os.startfile(path)  # noqa: S606 - a folder FVS chose, never a path from the request
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", str(path)])  # noqa: S603, S607
+    else:
+        subprocess.Popen(["xdg-open", str(path)])  # noqa: S603, S607
 
 
 def _length(seconds: float | None) -> str | None:
@@ -313,6 +325,48 @@ def add_web_routes(app: FastAPI, core: Core) -> None:  # noqa: C901 - one route 
         core.activity.add(f"Output folder set to {out} (applies after a restart).",
                           source="creator")
         return {"output": out, "restart_needed": True}
+
+    @app.post("/api/open-folder")
+    async def open_folder(data: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
+        """Open one of FVS's own folders, or a project's export, on this computer. Only
+        these names are accepted, never a path."""
+        folders = core.config.folders.expanded()
+        named = {"input": folders.input, "output": folders.output,
+                 "inspiration": folders.inspiration}
+        if data.get("project") is not None:
+            proj = core.projects.get_row(data["project"])
+            path = core.exporter.latest(proj)
+            if path is None:
+                raise FvsError(ErrorCode.NOT_FOUND,
+                               f"#{proj['number']} has not been exported yet.",
+                               "Approve it in the review queue to export it.")
+        elif data.get("folder") in named:
+            path = named[data["folder"]]
+        else:
+            raise FvsError(ErrorCode.SETTINGS_INVALID, "Unknown folder.",
+                           f"Use one of: {', '.join(named)}.", example='{"folder": "output"}')
+        path.mkdir(parents=True, exist_ok=True)
+        await run(open_in_file_manager, path)
+        return {"opened": str(path)}
+
+    # ---- inspiration sets (INS-1) ------------------------------------------------------
+
+    @app.get("/api/inspiration")
+    async def inspiration_sets() -> dict[str, Any]:
+        sets = await run(core.inspiration.scan)
+        return {"folder": str(core.config.folders.expanded().inspiration), "sets": sets,
+                "default": core.settings.get().defaults.inspiration_set}
+
+    @app.put("/api/inspiration/{name}/videos/{number}/note")
+    async def inspiration_note(name: str, number: int,
+                               data: Annotated[dict[str, Any], Body()]) -> dict[str, Any]:
+        return await run(core.inspiration.set_note, name, number, str(data.get("note", "")))
+
+    @app.get("/api/inspiration/{name}/thumbs/{content_hash}.jpg")
+    async def inspiration_thumb(name: str, content_hash: str) -> Response:
+        return Response(await run(core.inspiration.thumb, name, content_hash),
+                        media_type="image/jpeg",
+                        headers={"Cache-Control": "private, max-age=3600"})
 
     @app.get("/api/templates")
     async def templates() -> dict[str, Any]:

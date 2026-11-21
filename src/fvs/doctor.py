@@ -21,12 +21,12 @@ from typing import Literal
 import httpx
 
 from fvs.config import Config
+from fvs.media.encoders import gpu_encoder
 from fvs.voice.elevenlabs import SUBSCRIPTION_URL
 
 Status = Literal["ok", "warn", "fail"]
 GB = 1024**3
 MIN_FFMPEG_MAJOR = 7
-HW_ENCODERS = ("h264_nvenc", "h264_qsv", "h264_amf", "h264_videotoolbox")
 
 
 @dataclass
@@ -104,10 +104,10 @@ def check_ffmpeg(ffmpeg: str = "ffmpeg") -> list[Check]:
                   if re.search(r"\slibx264\s", etext) else
                   Check("libx264", "fail", "FFmpeg was built without libx264",
                         "Install an FFmpeg build with libx264."))
-    hw = [e for e in HW_ENCODERS if re.search(rf"\s{e}\s", etext)]
+    works = gpu_encoder()
     checks.append(Check("Hardware encoder", "ok",
-                        f"Listed by FFmpeg: {', '.join(hw)} (tested when used, phase 4)" if hw
-                        else "None listed; renders use libx264"))
+                        f"{works} works; renders use it while Settings → Performance is GPU"
+                        if works else "None works here; renders use libx264 on the CPU"))
     return checks
 
 

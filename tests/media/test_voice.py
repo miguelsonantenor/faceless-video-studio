@@ -106,11 +106,13 @@ def test_stitching_passes_previous_request_ids(vcore: Core, fake: FakeElevenLabs
         ["req2", "req3", "req4"]]
 
 
-def test_eleven_v3_is_not_stitched(vcore: Core, fake: FakeElevenLabs) -> None:
-    vcore.profiles.save({"alias": "v3", "voice_id": "abc", "model_id": "eleven_v3"})
-    _voice(vcore, _scripted(vcore), voice="v3")
+@pytest.mark.parametrize("model", ["eleven_v3", "eleven_v4"])
+def test_eleven_v3_and_newer_are_not_stitched(vcore: Core, fake: FakeElevenLabs,
+                                               model: str) -> None:
+    vcore.profiles.save({"alias": "new", "voice_id": "abc", "model_id": model})
+    _voice(vcore, _scripted(vcore), voice="new")
     assert all("previous_request_ids" not in c for c in fake.calls)
-    assert {c["model_id"] for c in fake.calls} == {"eleven_v3"}
+    assert {c["model_id"] for c in fake.calls} == {model}
 
 
 def test_ac8_unchanged_script_bills_nothing(vcore: Core, fake: FakeElevenLabs) -> None:

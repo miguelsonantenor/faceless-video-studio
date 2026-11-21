@@ -17,7 +17,7 @@ from pydantic import Field
 from fvs.analyze.analyzer import EXTRAS
 from fvs.analyze.service import describe
 from fvs.core import Core
-from fvs.errors import FvsError
+from fvs.errors import ErrorCode, FvsError
 from fvs.jobs import ACTIVE_STATES
 from fvs.library import PAGE_SIZE
 from fvs.mcp.guide import MARKUP, WORKFLOW
@@ -30,7 +30,7 @@ Ref = int | str
 Format = Literal["concise", "detailed"]
 JOB_WAIT_MAX_S = 15.0
 GUIDE_SECTIONS = ("workflow", "markup", "edit_spec_schema", "templates", "caption_styles",
-                  "voices", "budget", "settings")
+                  "voices", "budget", "settings", "inspiration")
 PROJECT_PARTS = ("script", "timings", "spec", "timeline", "renders", "reviews", "history")
 
 
@@ -68,8 +68,53 @@ def guide(core: Core, a: GuideArgs) -> dict[str, Any]:
         out["quota"] = core.voice.quota_status()
     if "settings" in want:
         out["settings"] = core.settings.get_flat()
+    if "inspiration" in want:
+        out["inspiration"] = _inspiration_brief(core)
     out["summary"] = ("FVS guide: " + ", ".join(k for k in out if k != "summary") + ".")
     return out
+
+
+def _inspiration_brief(core: Core) -> dict[str, Any]:
+    """INS-3: the creator's chosen examples, as the guide shows them (no analysis here)."""
+    name = core.settings.get().defaults.inspiration_set
+    profile = core.inspiration.cached_profile(name)
+    if not name:
+        return {"set": None, "note": "No inspiration set is chosen. If the creator has "
+                "example videos, fvs_inspiration lists the sets."}
+    if profile is None:
+        return {"set": name, "note": "Call fvs_inspiration to analyse the examples and see "
+                "their look sheet before writing the script."}
+    keep = ("length_s", "median_shot_s", "first_word_s", "words_per_minute",
+            "hook_words", "loudness_lufs")
+    return {"set": name, "summary": profile["summary"],
+            "measures": {k: profile["measures"][k] for k in keep},
+            "notes": [f"{v['number']}: {v['note']}" for v in profile["per_video"]
+                      if v["note"]],
+            "hooks": [v["hook"] for v in profile["per_video"] if v["hook"]][:6],
+            "endings": [v["ending"] for v in profile["per_video"] if v["ending"]][:6],
+            "look_sheet": "fvs_inspiration returns it as an image"}
+
+
+class InspirationArgs(Args):
+    set: str | None = Field(None, description="Set name (a subfolder of the inspiration "
+                                              "folder); default the creator's chosen set")
+    page: int = Field(1, ge=1, description="Look sheet page, 12 videos each")
+    notes: list[dict[str, Any]] | None = Field(
+        None, description='Notes on what to take from a video, from the creator, e.g. '
+                          '[{"video": 2, "note": "the fast hook"}]')
+
+
+def inspiration(core: Core, a: InspirationArgs) -> Seen:
+    if a.notes:
+        name = core.inspiration.choose(a.set)
+        if name is None:
+            raise FvsError(ErrorCode.SPEC_INVALID, "Which set are the notes for?",
+                           "Pass set with the notes.")
+        for n in a.notes:
+            core.inspiration.set_note(name, n.get("video", ""), str(n.get("note", "")),
+                                      source="claude")
+    data, sheet = core.inspiration.profile(a.set, page=a.page)
+    return Seen([sheet] if sheet else [], data)
 
 
 # ---- library and projects ---------------------------------------------------------------
@@ -633,6 +678,15 @@ def build_registry() -> Registry:
                AssetImportArgs, asset_import,
                example='{"path": "calm.mp3", "kind": "music", "license": "CC0", '
                        '"tags": ["calm"]}'))
+    r.add(Tool("fvs_inspiration", "Study the examples", "The creator's example videos "
+               "(an inspiration set) as a style profile: length, shot length, cuts per "
+               "second, time to the first word, words per minute, sentence length, hooks, "
+               "endings and loudness (median, range and per video) plus a look sheet image "
+               "of 3 frames per video for what is not measured (caption look, framing, "
+               "colour). Use it before writing scripts and planning edits, and match it. "
+               "Never use these videos as footage. A first analysis may return a job_id. "
+               "Free.", InspirationArgs, inspiration, images=True,
+               example='{"set": "perfume"}'))
     r.add(Tool("fvs_settings", "Settings", "Read or change settings: video length, daily "
                "character budget, export folder, default template and voice, renders at "
                "once, safe zone. Changes are checked like in the web app and logged. The "

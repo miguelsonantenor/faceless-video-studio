@@ -12,7 +12,9 @@ import pytest
 
 from fvs.analyze.detect import detect
 from fvs.core import Core
+from fvs.media.encoders import ENCODER_ARGS, gpu_encoder
 from fvs.qa.checks import caption_events
+from fvs.render import service as render_service
 from tests.conftest import wait_for
 from tests.fake_elevenlabs import FakeElevenLabs, sine_mp3
 from tests.media.conftest import number_of, open_core
@@ -105,7 +107,7 @@ def test_state_render_row_command_log_and_reuse(rcore: Core, rendered: dict) -> 
         row = dict(conn.execute("SELECT * FROM renders WHERE id = ?",
                                 (rendered["render_id"],)).fetchone())
     log = json.loads(row["command_log"])
-    assert "libx264" in log["render"] and "loudnorm" in log["measure"]
+    assert rendered["encoder"] in log["render"] and "loudnorm" in log["measure"]
     assert Path(log["log"]).exists()
     again = rcore.renders.start([rendered["n"]])
     assert again["items"][0]["status"] == "reused"
@@ -154,6 +156,17 @@ def test_ac5_original_sound_drops_under_the_voice(rcore: Core) -> None:
     speaking = _band_db(result["path"], first[1]["start"], 0.5, 440)
     tail = _band_db(result["path"], last_word + 0.2, 0.3, 440)  # after the duck ramps
     assert tail - speaking >= 10, (speaking, tail)
+
+
+def test_rnd6_gpu_by_default_and_cpu_when_the_gpu_encode_fails(
+        rcore: Core, rendered: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    assert rendered["encoder"] == (gpu_encoder() or "libx264")
+    # A GPU encoder that fails: the render is made again on the CPU, with a warning.
+    monkeypatch.setattr(render_service, "pick_encoder", lambda device: "h264_nvenc")
+    monkeypatch.setitem(ENCODER_ARGS, "h264_nvenc", ["-c:v", "fvs_no_such_encoder"])
+    result = _render(rcore, _ready(rcore, ["portrait.mp4"]))
+    assert result["encoder"] == "libx264"
+    assert any("GPU encoder (h264_nvenc) failed" in w for w in result["warnings"])
 
 
 def test_cancel_removes_the_partial_file(rcore: Core) -> None:

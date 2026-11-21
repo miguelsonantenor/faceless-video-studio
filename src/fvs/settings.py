@@ -23,6 +23,8 @@ from fvs.events import EventBus
 from fvs.store import Database
 from fvs.timeutil import now_iso
 
+MIN_FRAME_RATE = 24  # TikTok takes 24-60 fps
+
 
 class _Group(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -32,6 +34,8 @@ class VideoSettings(_Group):
     target_min_seconds: int = Field(30, ge=5, le=180)
     target_max_seconds: int = Field(45, ge=5, le=180)
     max_seconds: int = Field(60, ge=5, le=600)
+    # Output frames per second: 0 = the clips' own rate, at TikTok's 24-60 fps.
+    frame_rate: int = Field(0, ge=0, le=60)
 
 
 class VoiceSettings(_Group):
@@ -45,10 +49,17 @@ class ExportSettings(_Group):
 
 class DefaultsSettings(_Group):
     template: str = Field("storytime_dark", min_length=1, max_length=80)
+    inspiration_set: str = Field("", max_length=80)  # "" = none (INS-3)
 
 
 class RenderSettings(_Group):
     renders_at_once: int = Field(0, ge=0, le=16)  # 0 = automatic
+
+
+class PerformanceSettings(_Group):
+    """Where heavy work runs: the GPU (encoding, speech recognition) or only the CPU."""
+
+    device: Literal["gpu", "cpu"] = "gpu"
 
 
 class SafeZoneSettings(_Group):
@@ -67,6 +78,7 @@ class Settings(_Group):
     defaults: DefaultsSettings = Field(default_factory=DefaultsSettings)
     render: RenderSettings = Field(default_factory=RenderSettings)
     safe_zone: SafeZoneSettings = Field(default_factory=SafeZoneSettings)
+    performance: PerformanceSettings = Field(default_factory=PerformanceSettings)
 
     @model_validator(mode="after")
     def _cross_field(self) -> Settings:
@@ -77,6 +89,9 @@ class Settings(_Group):
             )
         if v.target_max_seconds > v.max_seconds:
             raise ValueError("video.target_max_seconds must be at most video.max_seconds")
+        if 0 < v.frame_rate < MIN_FRAME_RATE:
+            raise ValueError(f"video.frame_rate must be 0 (same as the clips) or "
+                             f"{MIN_FRAME_RATE}-60")
         if self.export.destination == "folder_and_tiktok_draft":
             raise ValueError(
                 "export.destination 'folder_and_tiktok_draft' is not available yet "
@@ -90,15 +105,18 @@ LABELS: dict[str, str] = {
     "video.target_min_seconds": "the shortest target length (seconds)",
     "video.target_max_seconds": "the longest target length (seconds)",
     "video.max_seconds": "the maximum video length (seconds)",
+    "video.frame_rate": "the frame rate (0 = same as the clips)",
     "voice.daily_budget_chars": "the daily voice budget (characters)",
     "voice.budget_reset_time": "the time the budget day starts",
     "export.destination": "where approved videos go",
     "defaults.template": "the default template",
+    "defaults.inspiration_set": "the inspiration set Claude follows",
     "render.renders_at_once": "renders at the same time (0 = automatic)",
     "safe_zone.top": "the top safe-zone margin (px)",
     "safe_zone.bottom": "the bottom safe-zone margin (px)",
     "safe_zone.left": "the left safe-zone margin (px)",
     "safe_zone.right": "the right safe-zone margin (px)",
+    "performance.device": "where renders and speech recognition run (gpu or cpu)",
 }
 
 

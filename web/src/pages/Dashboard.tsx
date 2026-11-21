@@ -1,7 +1,7 @@
 // What is happening: counts by state, every project, Claude's activity, running jobs,
 // and what needs the creator (REV-1, REV-2, REV-5).
 import { useLive, type Overview, type ProjectRow, type State } from "../api";
-import { clock, day, ErrorNote, Link, n, StateChip } from "../ui";
+import { clock, day, ErrorNote, Link, n, OpenFolder, StateChip } from "../ui";
 
 const TONE: Partial<Record<State, string>> = {
   rendering: "blue", claude_check: "blue", in_review: "amber", changes_requested: "amber",
@@ -24,6 +24,10 @@ export function Dashboard({ overview }: { overview: Overview | null }) {
               + `${day(overview.activity[0].at)}` : "Nothing has happened yet"}
           </span>
           <h1>All projects · {total}</h1>
+          <div className="buttons">
+            <OpenFolder folder="input">Open input folder</OpenFolder>
+            <OpenFolder folder="output">Open output folder</OpenFolder>
+          </div>
         </div>
         {overview && <BudgetCard overview={overview} />}
       </div>

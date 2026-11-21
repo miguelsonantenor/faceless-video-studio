@@ -65,6 +65,9 @@ def test_hash_changes_with_the_clip_content(core: Core, proj: dict) -> None:
         conn.execute("UPDATE clips SET content_hash = 'other'")
     _, _, b, _ = core.specs.check(core.projects.get_row(1), dict(SPEC))
     assert a != b
+    core.settings.update({"video.frame_rate": 30})  # another frame rate is another render
+    _, _, c, _ = core.specs.check(core.projects.get_row(1), dict(SPEC))
+    assert c != b
 
 
 def test_dry_run_returns_problems_and_saves_nothing(core: Core, proj: dict) -> None:

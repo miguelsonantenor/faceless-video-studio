@@ -215,6 +215,6 @@ export interface ProjectDetail {
 export interface SettingsPayload {
   settings: Record<string, string | number>;
   elevenlabs: { configured: boolean; key_last4: string | null };
-  folders: { input: string; workspace: string; output: string };
+  folders: { input: string; workspace: string; output: string; inspiration: string };
   mcp: { address: string; token_last4: string };
 }

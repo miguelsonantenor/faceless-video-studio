@@ -15,8 +15,10 @@ from fvs.pathguard import Area, PathGuard
 
 @pytest.fixture
 def guard(tmp_path: Path) -> PathGuard:
-    folders = Folders(input=tmp_path / "in", workspace=tmp_path / "ws", output=tmp_path / "out")
-    for p in (folders.input, folders.workspace, folders.assets, folders.output):
+    folders = Folders(input=tmp_path / "in", workspace=tmp_path / "ws", output=tmp_path / "out",
+                      inspiration=tmp_path / "insp")
+    for p in (folders.input, folders.workspace, folders.assets, folders.output,
+              folders.inspiration):
         p.mkdir(parents=True)
     (tmp_path / "outside").mkdir()
     return PathGuard(folders)
@@ -61,6 +63,13 @@ def test_input_folder_is_read_only(guard: PathGuard, tmp_path: Path) -> None:
     err = _refused(guard, tmp_path / "in" / "a.mp4", write=True)
     assert "read-only" in err.message
     _refused(guard, tmp_path / "in" / "a.mp4", {Area.INPUT}, write=True)
+
+
+def test_inspiration_folder_is_read_only(guard: PathGuard, tmp_path: Path) -> None:
+    """INS-1: example videos are read, never written."""
+    video = tmp_path / "insp" / "storytime" / "a.mp4"
+    assert guard.resolve(video, {Area.INSPIRATION}) == video.resolve()
+    assert "inspiration folder is read-only" in _refused(guard, video, write=True).message
 
 
 def test_area_restriction(guard: PathGuard, tmp_path: Path) -> None:

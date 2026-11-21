@@ -2,7 +2,8 @@
 // quality checks, script versions, voice and edit, and the decision (REV-2, REV-3, PRJ-5).
 import { useCallback, useState } from "react";
 import { api, ApiError, useLive, type ProjectDetail, type SettingsPayload } from "../api";
-import { Checks, clock, day, ErrorNote, Link, n, Player, secs, StateChip, Toast } from "../ui";
+import { Checks, clock, day, ErrorNote, Link, n, OpenFolder, Player, secs, StateChip,
+  Toast } from "../ui";
 import { decide, type Decision } from "./decide";
 
 export function Project({ ref_ }: { ref_: string }) {
@@ -34,6 +35,8 @@ export function Project({ ref_ }: { ref_: string }) {
           <h1>#{p.number} {p.title}</h1>
           <StateChip state={p.state} label={data.state_label} failed={p.failed} />
         </div>
+        {p.state === "exported" && (
+          <OpenFolder project={p.number}>Open the exported video</OpenFolder>)}
       </div>
       {p.failed && p.last_error && (
         <div className="alert red">

@@ -5,9 +5,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from fvs.compile.ass import build_ass, colour, ts
-from fvs.compile.compiler import Inputs, compile_render, duck_volume, parse_loudnorm
+from fvs.compile.compiler import Inputs, compile_render, duck_volume, output_fps, parse_loudnorm
 from fvs.compile.graph import Graph, f, value
+from fvs.media import encoders
 from fvs.settings import SafeZoneSettings
 from fvs.spec.models import Captions, EditSpec
 from fvs.spec.resolve import Context, resolve
@@ -23,7 +26,8 @@ CLIPS = {1: {"id": "c1", "duration_s": 20.0, "content_hash": "h1", "path": "/in/
 MUSIC = {"id": "a1", "name": "rain", "duration_s": 60.0, "path": "/assets/music/rain.mp3"}
 
 
-def _plan(measured: dict | None = None, music: dict | None = None, **over: object):
+def _plan(measured: dict | None = None, music: dict | None = None, encoder: str = "libx264",
+          **over: object):
     spec = EditSpec.model_validate({"project": 1, "timeline": {"segments": [
         {"clip": 1, "in": 2, "cue": {"sentences": [1]}, "motion": "zoom_in"},
         {"clip": 2, "in": 1.3, "cue": {"sentences": [2]}, "transition_in": "fade",
@@ -35,9 +39,35 @@ def _plan(measured: dict | None = None, music: dict | None = None, **over: objec
     inputs = Inputs(clips=CLIPS, voice_path=Path("voice/v.wav"), timings=TIMINGS,
                     style=CAPTION_STYLES["bold_yellow"], font="Montserrat",
                     safe=SafeZoneSettings(), hook_text="Volcanoes make lightning",
-                    fonts_dir="../../assets/fonts", music=music)
+                    fonts_dir="../../assets/fonts", music=music, encoder=encoder)
     return compile_render(spec, timeline, inputs, ass_name="captions/x.ass",
                           out_name="renders/x.mp4", measured=measured)
+
+
+def test_the_encoder_follows_the_choice() -> None:
+    """RND-6: libx264 on the CPU, or a hardware encoder; the rest of the command is the
+    same."""
+    cpu, gpu = _plan().args, _plan(encoder="h264_nvenc").args
+    assert cpu[cpu.index("-c:v") + 1] == "libx264" and cpu[cpu.index("-crf") + 1] == "17"
+    assert "-maxrate" not in cpu and "-maxrate" not in gpu  # quality is not capped
+    assert gpu[gpu.index("-c:v") + 1] == "h264_nvenc" and "-cq" in gpu
+    assert cpu[cpu.index("-pix_fmt"):] == gpu[gpu.index("-pix_fmt"):]
+
+
+def test_output_frame_rate_follows_the_clips_at_tiktok_rates() -> None:
+    """60 fps phone footage stays 60 fps; nothing goes over TikTok's 60."""
+    assert output_fps([59.96]) == 60 and output_fps([29.97, 59.94]) == 60
+    assert output_fps([23.976]) == 24 and output_fps([25.0]) == 25
+    assert output_fps([120.0]) == 60 and output_fps([None]) == 30 and output_fps([]) == 30
+    assert output_fps([59.96], setting=30) == 30  # Settings → Video can fix one rate
+
+
+def test_pick_encoder(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(encoders, "gpu_encoder", lambda: "h264_nvenc")
+    assert encoders.pick_encoder("gpu") == "h264_nvenc"
+    assert encoders.pick_encoder("cpu") == "libx264"
+    monkeypatch.setattr(encoders, "gpu_encoder", lambda: None)  # no usable GPU encoder
+    assert encoders.pick_encoder("gpu") == "libx264"
 
 
 def test_values_are_quoted_only_when_needed() -> None:

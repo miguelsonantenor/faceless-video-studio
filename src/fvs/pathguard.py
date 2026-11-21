@@ -2,8 +2,8 @@
 
 Every path that reaches FVS from outside (a tool argument, a web request) goes through
 ``PathGuard.resolve``. The path is fully resolved, following symlinks and Windows
-junctions, and must land inside one of the configured folders. The input folder is
-read-only: asking for a writable path there is refused.
+junctions, and must land inside one of the configured folders. The input and
+inspiration folders are read-only: asking for a writable path there is refused.
 """
 
 from __future__ import annotations
@@ -20,9 +20,10 @@ class Area(StrEnum):
     WORKSPACE = "workspace"
     ASSETS = "assets"
     OUTPUT = "output"
+    INSPIRATION = "inspiration"
 
 
-READ_ONLY_AREAS = frozenset({Area.INPUT})
+READ_ONLY_AREAS = frozenset({Area.INPUT, Area.INSPIRATION})
 
 
 class PathGuard:
@@ -34,6 +35,7 @@ class PathGuard:
             Area.WORKSPACE: f.workspace.resolve(),
             Area.ASSETS: f.assets.resolve(),
             Area.OUTPUT: f.output.resolve(),
+            Area.INSPIRATION: f.inspiration.resolve(),
         }
 
     def resolve(
@@ -68,9 +70,10 @@ class PathGuard:
             if resolved.is_relative_to(self.roots[area]):
                 return resolved
 
-        if write and resolved.is_relative_to(self.roots[Area.INPUT]):
-            raise self._refuse(path, "the input folder is read-only; FVS never writes there",
-                               allowed)
+        for area in READ_ONLY_AREAS:
+            if write and resolved.is_relative_to(self.roots[area]):
+                raise self._refuse(path, f"the {area.value} folder is read-only; FVS never "
+                                   "writes there", allowed)
         raise self._refuse(path, "it is outside the folders FVS may use", allowed)
 
     def _refuse(self, path: str | Path, why: str, allowed: set[Area]) -> FvsError:

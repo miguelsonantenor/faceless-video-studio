@@ -1,6 +1,6 @@
 // Small shared pieces: navigation, chips, check marks, the player, formatting.
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
-import type { ApiError, Check, State } from "./api";
+import { api, type ApiError, type Check, type State } from "./api";
 
 // ---- a minimal router (five screens do not need a library) ----------------------------
 
@@ -144,6 +144,23 @@ export function Toast({ text, onDone }: { text: string | null; onDone: () => voi
     return () => window.clearTimeout(t);
   }, [text, onDone]);
   return text ? <div className="toast" role="status">{text}</div> : null;
+}
+
+/** Shows one of FVS's folders (or a project's export) in Explorer / Finder. */
+export function OpenFolder({ folder, project, children }: {
+  folder?: "input" | "output" | "inspiration"; project?: number; children: ReactNode }) {
+  const [error, setError] = useState<ApiError | null>(null);
+  const open = () => {
+    setError(null);
+    api("/api/open-folder", { method: "POST", body: project != null ? { project } : { folder } })
+      .catch((e) => setError(e as ApiError));
+  };
+  return (
+    <span className="open-folder">
+      <button type="button" onClick={open}>{children}</button>
+      {error && <span className="error small" role="alert">{error.message}</span>}
+    </span>
+  );
 }
 
 // ---- formatting -----------------------------------------------------------------------

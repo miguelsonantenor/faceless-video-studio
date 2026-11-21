@@ -18,16 +18,18 @@ import shutil
 import subprocess
 import time
 import uuid
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 from fvs.activity import ActivityLog, Source
 from fvs.analyze.probe import probe
 from fvs.atomic import atomic_path, write_text_atomic
-from fvs.compile.compiler import Inputs, compile_render, parse_loudnorm
+from fvs.compile.compiler import Inputs, compile_render, output_fps, parse_loudnorm
 from fvs.errors import ErrorCode, FvsError
 from fvs.jobs import JobCancelled, JobContext, JobQueue, StepContext
 from fvs.logs import get_logger
+from fvs.media.encoders import CPU_ENCODER, pick_encoder
 from fvs.media.tools import Result, run_tool
 from fvs.projects import Projects, next_state
 from fvs.qa.runner import run_qa
@@ -176,10 +178,14 @@ class RenderService:
                                  (proj["voiceover_id"],)).fetchone()
         music = ctx.assets.get(spec.audio.music.asset) if spec.audio.music else None
         fonts_rel = Path("..", "..", "assets", "fonts").as_posix()  # from the project folder
+        settings = self.settings.get()
         return (Inputs(clips=ctx.clips, voice_path=Path(voice["audio_path"]),
                        timings=ctx.timings, style=style, font=family,
-                       safe=self.settings.get().safe_zone, hook_text=ctx.script_hook,
-                       music=music, fonts_dir=fonts_rel if self.fonts_dir.is_dir() else None),
+                       safe=settings.safe_zone, hook_text=ctx.script_hook,
+                       music=music, fonts_dir=fonts_rel if self.fonts_dir.is_dir() else None,
+                       encoder=pick_encoder(settings.performance.device),
+                       fps=output_fps([c.get("fps") for c in ctx.clips.values()],
+                                      settings.video.frame_rate)),
                 [font_warning] if font_warning else [])
 
     def run_job(self, ctx: JobContext) -> dict[str, Any]:
@@ -219,13 +225,26 @@ class RenderService:
                              f"Rendering: {done:.0f} of {total:.0f} s")
 
         with atomic_path(final) as tmp:
-            plan = compile_render(spec, timeline, inputs, ass_name=ass_name,
-                                  out_name=Path("renders", tmp.name).as_posix(),
-                                  measured=measured)
-            plan.args[-1:-1] = ["-f", "mp4"]  # the temp name has no .mp4 extension
-            res = run_tool("ffmpeg", plan.args, cwd=folder, on_line=on_line,
-                           cancelled=lambda: ctx.cancelled, timeout=1800)
-            self._log(log_path, [measure, res])
+            def encode(inp: Inputs) -> tuple[Any, Result]:
+                p = compile_render(spec, timeline, inp, ass_name=ass_name,
+                                   out_name=Path("renders", tmp.name).as_posix(),
+                                   measured=measured)
+                p.args[-1:-1] = ["-f", "mp4"]  # the temp name has no .mp4 extension
+                return p, run_tool("ffmpeg", p.args, cwd=folder, on_line=on_line,
+                                   cancelled=lambda: ctx.cancelled, timeout=1800)
+
+            plan, res = encode(inputs)
+            tries = [measure, res]
+            if res.returncode != 0 and inputs.encoder != CPU_ENCODER and not ctx.cancelled:
+                # RND-6: a GPU encode that fails is made once more on the CPU.
+                log.warning("gpu_encode_failed", encoder=inputs.encoder,
+                            error=res.stderr_tail(3))
+                warnings.append(f"The GPU encoder ({inputs.encoder}) failed, so this render "
+                                "was made on the CPU.")
+                inputs = replace(inputs, encoder=CPU_ENCODER)
+                plan, res = encode(inputs)
+                tries.append(res)
+            self._log(log_path, tries)
             if res.returncode != 0:
                 raise classify(res, log_path)
 
@@ -255,6 +274,7 @@ class RenderService:
         return {"project": proj["number"], "render_id": render_id, "path": str(final),
                 "duration_s": info.duration_s, "bytes": final.stat().st_size,
                 "seconds": seconds, "render_seconds": render_seconds, "warnings": warnings,
+                "encoder": inputs.encoder,
                 "qa": {"status": report["status"], "summary": report["summary"]},
                 "summary": f"Rendered #{proj['number']}: a {info.duration_s:.1f} s video "
                            f"in {render_seconds:.0f} s. {report['summary']}"}

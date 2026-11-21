@@ -12,7 +12,9 @@ change (NFR-M2):
 6. Audio: voice; the clips' own sound per segment (mute, duck or keep); music from
    ``start_at``, looped, faded; ducking under the voice; mix; loudness in two passes
    (an audio-only pass measures, the render applies the measured values).
-7. Output: 1080×1920, 30 fps, H.264 High, yuv420p, AAC 48 kHz, fast start, progress.
+7. Output: TikTok's 1080×1920 at the clips' own frame rate (24-60 fps, see
+   ``output_fps``), H.264 High, yuv420p, AAC 48 kHz, fast start, progress. Cuts sit on
+   the 1/30 s timeline grid, which is also a frame boundary at 60 fps.
 
 Ducking uses a volume envelope built from the voiceover's sentence times (0.15 s ramps)
 rather than a compressor keyed by the voice: the times are known exactly, so the drop
@@ -29,10 +31,23 @@ from typing import Any
 
 from fvs.compile.ass import build_ass
 from fvs.compile.graph import Graph, f
+from fvs.media.encoders import CPU_ENCODER, ENCODER_ARGS
 from fvs.settings import SafeZoneSettings
 from fvs.spec.models import EditSpec, Reframe
 
 W, H, FPS = 1080, 1920, 30
+TIKTOK_RATES = (24, 25, 30, 50, 60)
+
+
+def output_fps(clip_rates: list[float | None], setting: int = 0) -> int:
+    """The render's frame rate: the setting when it names one, else the fastest clip's
+    rate as the nearest TikTok rate (24-60 fps), so 60 fps footage stays 60 fps."""
+    if setting:
+        return setting
+    rates = [r for r in clip_rates if r]
+    if not rates:
+        return FPS
+    return min(TIKTOK_RATES, key=lambda r: abs(r - min(max(rates), 60.0)))
 SAMPLE_RATE = 48_000
 MOTION_AMOUNT = 0.08  # slow zoom: 8 % over the segment
 PAN_SCALE = 1.1
@@ -52,6 +67,8 @@ class Inputs:
     hook_text: str | None
     music: dict[str, Any] | None = None  # asset row
     fonts_dir: str | None = None  # relative to the working folder
+    encoder: str = CPU_ENCODER  # a key of ENCODER_ARGS
+    fps: int = FPS  # output frame rate, from output_fps
 
 
 @dataclass
@@ -94,22 +111,23 @@ def motion_filters(motion: str, length: float) -> list[str]:
     return []
 
 
-def _segment_video(g: Graph, idx: int, seg: dict[str, Any], spec: EditSpec) -> str:
+def _segment_video(g: Graph, idx: int, seg: dict[str, Any], spec: EditSpec,
+                   inputs: Inputs) -> str:
     length = round(seg["out_end"] - seg["video_start"], 4)
     pre = ["setpts=PTS-STARTPTS"]
     if seg["speed"] != 1.0:
         pre.append(f"setpts=PTS/{seg['speed']:g}")
-    pre.append(f("fps", FPS))
+    pre.append(f("fps", inputs.fps))
     label = reframe(g, g.one([f"{idx}:v"], pre, "v"), spec.reframe)
     post = motion_filters(seg["motion"], length)
     if seg["loop"]:
-        frames = max(1, int((seg["src_out"] - seg["src_in"]) / seg["speed"] * FPS))
+        frames = max(1, int((seg["src_out"] - seg["src_in"]) / seg["speed"] * inputs.fps))
         post.append(f("loop", loop=-1, size=frames, start=0))
     if seg["hold_s"]:
         post.append(f("tpad", stop_mode="clone", stop_duration=seg["hold_s"]))
     # The closing fps keeps the frame rate set after crop/trim, which xfade needs.
     post += [f("trim", duration=length), "setpts=PTS-STARTPTS", f("format", "yuv420p"),
-             f("setsar", 1), f("fps", FPS)]
+             f("setsar", 1), f("fps", inputs.fps)]
     return g.one([label], post, "seg")
 
 
@@ -276,7 +294,8 @@ def compile_render(spec: EditSpec, timeline: dict[str, Any], inputs: Inputs, *,
     # Pass 2: the render.
     g = Graph()
     in_args, v_idx, m_idx = input_args(timeline, spec, inputs, audio_only=False)
-    segs = [_segment_video(g, i, s, spec) for i, s in enumerate(timeline["segments"])]
+    segs = [_segment_video(g, i, s, spec, inputs)
+            for i, s in enumerate(timeline["segments"])]
     video = _join(g, segs, timeline["segments"])
     if ass_text is not None:
         sub = f"subtitles=filename={ass_name}"
@@ -288,8 +307,8 @@ def compile_render(spec: EditSpec, timeline: dict[str, Any], inputs: Inputs, *,
     g.chain([mixed], [loudnorm(spec, measured), AUDIO_FMT], ["aout"])
     args = ["-y", "-hide_banner", "-nostats", "-progress", "pipe:1", *in_args,
             "-filter_complex", g.render(), "-map", "[vout]", "-map", "[aout]",
-            "-c:v", "libx264", "-profile:v", "high", "-preset", "veryfast", "-crf", "20",
-            "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac", "-b:a", "192k",
+            *ENCODER_ARGS[inputs.encoder], "-pix_fmt", "yuv420p", "-r", str(inputs.fps),
+            "-c:a", "aac", "-b:a", "192k",
             "-ar", str(SAMPLE_RATE), "-ac", "2", "-movflags", "+faststart",
             "-t", f"{total:.4f}", out_name]
     return RenderPlan(args=args, measure_args=measure, ass=ass_text, duration_s=total)

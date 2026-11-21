@@ -149,6 +149,54 @@ def test_token_folders_templates_assets(client: TestClient, core: Core,
     assert client.get("/api/jobs/nope/log").status_code == 404
 
 
+def test_voice_models_come_from_the_account(client: TestClient) -> None:
+    """Any speech model the account has can be picked (v2, v3, later ones)."""
+    items = client.get("/api/voice-models").json()["items"]
+    assert [m["model_id"] for m in items] == ["eleven_multilingual_v2", "eleven_v3"]
+    assert items[0] == {"model_id": "eleven_multilingual_v2", "name": "Eleven Multilingual v2",
+                        "description": "Most life-like", "languages": 2}
+    saved = client.put("/api/voices/narrator", json={"voice_id": "JBFqnCBsd6RMkjVDRZzb",
+                                                     "model_id": "eleven_v3"}).json()
+    assert saved["model_id"] == "eleven_v3"
+
+
+def test_inspiration_sets_and_notes(client: TestClient, core: Core) -> None:
+    root = core.config.folders.expanded().inspiration
+    (root / "perfume").mkdir(parents=True)
+    (root / "perfume" / "a.mp4").write_bytes(b"one")
+    data = client.get("/api/inspiration").json()
+    assert data["folder"] == str(root) and data["default"] == ""
+    perfume = next(s for s in data["sets"] if s["name"] == "perfume")
+    assert [v["file_name"] for v in perfume["videos"]] == ["a.mp4"]
+    r = client.put("/api/inspiration/perfume/videos/1/note", json={"note": "the hook"})
+    assert r.json()["videos"][0]["note"] == "the hook"
+    assert client.put("/api/inspiration/perfume/videos/9/note",
+                      json={"note": "x"}).status_code == 404
+    client.patch("/api/settings", json={"defaults.inspiration_set": "perfume"})
+    assert client.get("/api/inspiration").json()["default"] == "perfume"
+
+
+def test_open_folder_opens_only_fvs_folders(client: TestClient, core: Core,
+                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    opened: list[Path] = []
+    monkeypatch.setattr(web, "open_in_file_manager", opened.append)
+    folders = core.config.folders.expanded()
+    for name in ("input", "output", "inspiration"):
+        assert client.post("/api/open-folder", json={"folder": name}).status_code == 200
+    assert opened == [folders.input, folders.output, folders.inspiration]
+    assert client.post("/api/open-folder", json={"folder": "C:/Windows"}).status_code == 422
+    assert client.post("/api/open-folder", json={"path": "C:/Windows"}).status_code == 422
+
+    proj = make_project(core)
+    r = client.post("/api/open-folder", json={"project": proj["number"]})
+    assert r.status_code == 404 and "not been exported" in r.json()["message"]
+    export = folders.output / "2026-11-20" / f"2026-11-20_{proj['number']:02d}_{proj['slug']}"
+    export.mkdir(parents=True)
+    assert client.post("/api/open-folder", json={"project": proj["number"]}).json() == {
+        "opened": str(export)}
+    assert opened[-1] == export
+
+
 def test_web_app_is_served_with_its_routes(client: TestClient) -> None:
     index = client.get("/")
     assert index.status_code == 200 and '<div id="root">' in index.text

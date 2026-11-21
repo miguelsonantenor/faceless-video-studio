@@ -16,7 +16,8 @@ One video (a "project"), about 14 calls:
 1. fvs_library_scan, then fvs_project_create (one project per clip by default; several \
 clips for a compilation; series and part for a multi-part series).
 2. fvs_clip_inspect each clip (details, scenes, speech, contact sheet); fvs_frames for \
-any moment you want to see closely.
+any moment you want to see closely. If the guide names an inspiration set (the creator's \
+example videos), call fvs_inspiration and match its length, pace, hooks and look.
 3. Write the voiceover, one sentence per line (markup below), and save it with \
 fvs_script_save. It returns numbered sentences and whether the length fits.
 4. fvs_voiceover_generate with dry_run true to see the cost. COSTS MONEY when not a dry \

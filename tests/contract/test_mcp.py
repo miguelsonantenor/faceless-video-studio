@@ -36,6 +36,7 @@ P1_TOOLS = {"fvs_guide", "fvs_library_scan", "fvs_project_create", "fvs_project_
           "fvs_job_get", "fvs_job_cancel", "fvs_settings", "fvs_projects_list",
           "fvs_project_review", "fvs_project_restore", "fvs_batch_run", "fvs_assets_list",
           "fvs_asset_import"}
+TOOLS = P1_TOOLS | {"fvs_inspiration"}  # INS-1–3, added in P2
 
 
 @pytest.fixture
@@ -98,13 +99,13 @@ def test_bad_json_is_a_parse_error(client: TestClient) -> None:
 
 def test_tool_definitions(client: TestClient) -> None:
     tools = rpc(client, "tools/list")["result"]["tools"]
-    assert {t["name"] for t in tools} == P1_TOOLS
+    assert {t["name"] for t in tools} == TOOLS
     for t in tools:
         Draft202012Validator.check_schema(t["inputSchema"])
         assert t["inputSchema"]["type"] == "object"
         assert len(t["description"]) > 60
         images = t["name"] in ("fvs_frames", "fvs_storyboard", "fvs_listen",
-                               "fvs_clip_inspect")
+                               "fvs_clip_inspect", "fvs_inspiration")
         assert ("outputSchema" in t) is not images  # ADR-8
     by = {t["name"]: t for t in tools}
     assert by["fvs_frames"]["annotations"]["readOnlyHint"] is True  # MCP-7
@@ -326,6 +327,6 @@ def test_stdio_proxy_with_the_sdk_client(served: Core, home: Path, tmp_path: Pat
             return tools, guide.structured_content, prompts
 
     tools, guide, prompts = asyncio.run(session())
-    assert tools == P1_TOOLS
+    assert tools == TOOLS
     assert guide["voices"][0]["alias"] == "narrator"
     assert len(prompts) == 4

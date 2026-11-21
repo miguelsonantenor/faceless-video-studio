@@ -24,6 +24,8 @@ GOOD = Probe(duration_s=5.5, start_s=0, width=1080, height=1920, rotation=0, fps
 
 def test_format() -> None:
     assert qa.check_format(GOOD).status == "pass"
+    sixty = qa.check_format(GOOD, 60)  # GOOD is 30 fps; a 60 fps render must be 60
+    assert sixty.status == "fail" and sixty.limit.startswith("h264 1080×1920 60 fps")
     bad = qa.check_format(Probe(**{**GOOD.__dict__, "width": 720}))
     assert bad.status == "fail" and "720" in bad.measured and bad.fix
 

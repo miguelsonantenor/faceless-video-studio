@@ -53,3 +53,26 @@ def test_gpu_load_failure_falls_back_to_cpu(monkeypatch: pytest.MonkeyPatch,
     monkeypatch.setattr(w, "model_path", lambda: tmp_path)
     w._load()
     assert loaded == [("cpu", "int8")] and w.device is CPU
+
+
+def test_the_cpu_setting_keeps_whisper_off_the_gpu(monkeypatch: pytest.MonkeyPatch,
+                                                   tmp_path: Path) -> None:
+    """Settings → Performance: GPU by default, CPU when the creator picks it."""
+    loaded: list[str] = []
+
+    class FakeModel:
+        def __init__(self, path: str, *, device: str, compute_type: str) -> None:
+            loaded.append(device)
+
+    monkeypatch.setattr(transcribe, "best_device", lambda: GPU)
+    monkeypatch.setattr(faster_whisper, "WhisperModel", FakeModel)
+    setting = {"gpu": True}
+    w = Whisper(tmp_path, use_gpu=lambda: setting["gpu"])
+    monkeypatch.setattr(w, "model_path", lambda: tmp_path)
+    assert w.device is GPU
+    w._load()
+    setting["gpu"] = False
+    assert w.device is CPU  # what the next transcription will use
+    w._load()
+    w._load()  # loaded once per change, not on every call
+    assert loaded == ["cuda", "cpu"]

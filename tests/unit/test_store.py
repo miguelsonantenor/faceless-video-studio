@@ -13,6 +13,7 @@ DS_TABLES = {
     "clips", "projects", "project_clips", "script_versions", "sentences", "voice_sentences",
     "voiceovers", "edit_specs", "renders", "reviews", "jobs", "activity", "assets",
     "templates", "caption_styles", "voice_profiles", "style_guide", "cost_ledger", "settings",
+    "inspiration_sets", "inspiration_videos",  # BUILD_PLAN 6.1
 }
 NOW = "2026-11-20T00:00:00+00:00"
 
@@ -39,11 +40,11 @@ def _project(conn: sqlite3.Connection, pid: str = "p1", number: int = 1) -> None
 
 def test_all_ds_tables_exist(db: Database) -> None:
     assert tables(db) == DS_TABLES
-    assert db.schema_version() == 2
+    assert db.schema_version() == 3
 
 
 def test_migrate_is_idempotent(db: Database) -> None:
-    assert db.migrate() == 2
+    assert db.migrate() == 3
     assert tables(db) == DS_TABLES
 
 

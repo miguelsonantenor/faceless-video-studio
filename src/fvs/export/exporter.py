@@ -79,6 +79,12 @@ class Exporter:
             folder, n = base.with_name(f"{base.name}_{n}"), n + 1
         return folder
 
+    def latest(self, proj: dict[str, Any]) -> Path | None:
+        """The project's newest export folder, if it was ever exported."""
+        found = [p for p in self.output.glob(f"*/*_{proj['number']:02d}_{proj['slug']}*")
+                 if p.is_dir() and not p.name.endswith(TMP_SUFFIX)]
+        return max(found, key=lambda p: p.stat().st_mtime, default=None)
+
     def export(self, proj: dict[str, Any], render: dict[str, Any]) -> Path:
         script = self.scripts.current(proj)
         current = self.specs.current(proj) or {}

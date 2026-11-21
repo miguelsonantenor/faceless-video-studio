@@ -23,6 +23,7 @@ from fvs.core import Core
 from fvs.doctor import run_doctor, worst
 from fvs.errors import ErrorCode, FvsError
 from fvs.mcp.server import add_mcp_routes
+from fvs.media.encoders import gpu_encoder
 
 SSE_HEARTBEAT_S = 15.0
 
@@ -48,7 +49,8 @@ def settings_payload(core: Core) -> dict[str, Any]:
             "key_last4": core.config.api_key_last4,
         },
         "folders": {"input": str(folders.input), "workspace": str(folders.workspace),
-                    "output": str(folders.output)},
+                    "output": str(folders.output),
+                    "inspiration": str(folders.inspiration)},
         "mcp": {"address": f"http://127.0.0.1:{core.config.port}/mcp",
                 "token_last4": core.token[-4:]},
     }
@@ -107,6 +109,13 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
         checks = await asyncio.to_thread(run_doctor, core.config, online=online)
         return {"status": worst(checks), "checks": [c.to_dict() for c in checks]}
 
+    @app.get("/api/hardware")
+    async def hardware() -> dict[str, Any]:
+        """What the GPU setting can use on this computer, for Settings → Performance."""
+        encoder = await asyncio.to_thread(gpu_encoder)
+        return {"gpu_encoder": encoder, "whisper": core.whisper.device.label,
+                "device": core.settings.get().performance.device}
+
     # ---- settings --------------------------------------------------------------------
 
     @app.get("/api/settings")
@@ -123,6 +132,11 @@ def create_app(core: Core, *, manage_lifecycle: bool = True,
     @app.get("/api/voices")
     async def voices() -> dict[str, Any]:
         return {"items": core.profiles.list()}
+
+    @app.get("/api/voice-models")
+    async def voice_models() -> dict[str, Any]:
+        """The speech models the ElevenLabs account offers, for the model picker."""
+        return {"items": await asyncio.to_thread(core.voice.client.models)}
 
     @app.put("/api/voices/{alias}")
     async def save_voice(alias: str, data: Annotated[dict[str, Any], Body()],
