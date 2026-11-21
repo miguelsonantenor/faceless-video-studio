@@ -107,8 +107,9 @@ def _segment_video(g: Graph, idx: int, seg: dict[str, Any], spec: EditSpec) -> s
         post.append(f("loop", loop=-1, size=frames, start=0))
     if seg["hold_s"]:
         post.append(f("tpad", stop_mode="clone", stop_duration=seg["hold_s"]))
+    # The closing fps keeps the frame rate set after crop/trim, which xfade needs.
     post += [f("trim", duration=length), "setpts=PTS-STARTPTS", f("format", "yuv420p"),
-             f("setsar", 1)]
+             f("setsar", 1), f("fps", FPS)]
     return g.one([label], post, "seg")
 
 

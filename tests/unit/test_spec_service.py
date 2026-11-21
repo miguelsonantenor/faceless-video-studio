@@ -73,8 +73,10 @@ def test_dry_run_returns_problems_and_saves_nothing(core: Core, proj: dict) -> N
     r = core.specs.save(1, spec=bad, dry_run=True)
     assert r["valid"] is False and r["error"]["code"] == "CUE_UNRESOLVED"
     assert r["errors"][0]["path"] == "timeline.segments[0]"
+    assert r["summary"].startswith("Dry run: the Edit Spec for #1 has problems")
     ok = core.specs.save(1, spec=SPEC, dry_run=True)
     assert ok["valid"] and ok["timeline"]["segments"] and ok["spec"]["template"]
+    assert "is valid" in ok["summary"]  # every tool result needs a summary (MCP-3)
     row = core.projects.get_row(1)
     assert (row["spec_v"], row["state"]) == (None, "voiced")
 

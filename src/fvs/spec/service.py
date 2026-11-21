@@ -31,7 +31,7 @@ from fvs.timeutil import now_iso
 from fvs.voice.service import VoiceService
 
 # Part of every spec hash: raise it when the compiler's output for the same spec changes.
-ENGINE_VERSION = 1
+ENGINE_VERSION = 2
 
 
 def merge_patch(target: Any, patch: Any) -> Any:
@@ -151,10 +151,15 @@ class SpecService:
                 parsed, timeline, spec_hash, _ = self.check(proj, data)
             except FvsError as exc:
                 return {"dry_run": True, "valid": False, "error": exc.to_dict(),
-                        "errors": exc.details}
+                        "errors": exc.details,
+                        "summary": f"Dry run: the Edit Spec for #{proj['number']} has "
+                                   f"problems: {exc.message}"}
             return {"dry_run": True, "valid": True, "spec_hash": spec_hash,
                     "spec": parsed.dump(), "timeline": timeline,
-                    "warnings": timeline["warnings"]}
+                    "warnings": timeline["warnings"],
+                    "summary": f"Dry run: the Edit Spec for #{proj['number']} is valid, "
+                               f"{len(timeline['segments'])} segment(s), "
+                               f"{timeline['duration_s']:.1f} s. Nothing was saved."}
 
         parsed, timeline, spec_hash, _ = self.check(proj, data)
         canonical = parsed.dump()

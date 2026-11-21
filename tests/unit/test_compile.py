@@ -71,6 +71,7 @@ def test_stages_appear_in_the_graph() -> None:
     assert "x=(iw-ow)*(1-t/1.7000)" in graph  # pan left
     assert "setpts=PTS/0.85" in graph and "atempo" not in graph  # clip 2 is silent
     assert "xfade=transition=fade:duration=0.3:offset=1.2" in graph
+    assert graph.count("setsar=1,fps=30[seg") == 3  # xfade needs a constant frame rate
     assert "concat=n=2:v=1:a=0" in graph
     assert "subtitles=filename=captions/x.ass:fontsdir=../../assets/fonts" in graph
     assert graph.count("aevalsrc") == 1  # clip 2 has no sound: silence for its segment
