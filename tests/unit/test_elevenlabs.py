@@ -83,3 +83,12 @@ def test_no_key_is_voice_auth_without_a_request() -> None:
 def test_quota() -> None:
     q = FakeElevenLabs().client().quota()
     assert (q.limit, q.left, q.resets_at) == (100_000, 99_000, "2026-01-01T00:00:00+00:00")
+
+
+def test_quota_is_one_try_without_retry_waits() -> None:
+    """The quota is only shown on screens; a busy ElevenLabs must not hold a thread 14 s."""
+    fake = FakeElevenLabs()
+    fake.queued.append(httpx.Response(503))
+    with pytest.raises(FvsError) as info:
+        fake.client().quota()
+    assert info.value.code == ErrorCode.VOICE_BUSY and fake.sleeps == []

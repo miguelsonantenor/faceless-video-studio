@@ -171,6 +171,9 @@ class Whisper:
     def unload(self) -> None:
         with self._lock:
             self._model = None
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
 
     def transcribe(self, media: Path, *, language: str | None = None,
                    cancelled: Callable[[], bool] | None = None,
@@ -180,26 +183,32 @@ class Whisper:
         # `fvs doctor` checks (faster-whisper's own PyAV path breaks across PyAV versions).
         audio = decode_pcm(media, SAMPLE_RATE, cancelled)
         with self._lock:
-            model = self._load()
-            segments_iter, info = model.transcribe(
-                audio, language=language, word_timestamps=True, vad_filter=True,
-                condition_on_previous_text=False)
-            segments = []
-            for seg in segments_iter:  # decoding happens lazily, segment by segment
-                if cancelled is not None and cancelled():
-                    raise JobCancelled()
-                segments.append({  # plain floats: faster-whisper returns numpy scalars
-                    "start": round(float(seg.start), 3),
-                    "end": round(float(seg.end), 3),
-                    "text": seg.text.strip(),
-                    "words": [{"start": round(float(w.start), 3),
-                               "end": round(float(w.end), 3),
-                               "word": w.word.strip(), "p": round(float(w.probability), 3)}
-                              for w in (seg.words or [])],
-                })
-                if progress is not None and duration_s:
-                    progress(min(1.0, seg.end / duration_s))
-            self._schedule_unload()
+            try:
+                model = self._load()
+                segments_iter, info = model.transcribe(
+                    audio, language=language, word_timestamps=True, vad_filter=True,
+                    condition_on_previous_text=False)
+                segments = []
+                for seg in segments_iter:  # decoding happens lazily, segment by segment
+                    if cancelled is not None and cancelled():
+                        raise JobCancelled()
+                    segments.append({  # plain floats: faster-whisper returns numpy scalars
+                        "start": round(float(seg.start), 3),
+                        "end": round(float(seg.end), 3),
+                        "text": seg.text.strip(),
+                        "words": [{"start": round(float(w.start), 3),
+                                   "end": round(float(w.end), 3),
+                                   "word": w.word.strip(), "p": round(float(w.probability), 3)}
+                                  for w in (seg.words or [])],
+                    })
+                    if progress is not None and duration_s:
+                        progress(min(1.0, seg.end / duration_s))
+            finally:
+                # Also after a cancel or an error: the model (about 1 GB of GPU and system
+                # memory) must not stay loaded until FVS closes.
+                del audio
+                if self._model is not None:
+                    self._schedule_unload()
         text = " ".join(s["text"] for s in segments).strip()
         return {
             "model": f"{MODEL_SIZE}-{self.device.compute_type}",

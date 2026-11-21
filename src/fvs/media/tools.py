@@ -72,8 +72,21 @@ def run_tool(
         creationflags=_CREATE_NO_WINDOW,
         cwd=cwd,
     )
-    if on_line is not None:
-        return _run_streaming(proc, argv, on_line, timeout, cancelled, start)
+    # Whatever happens (cancel, timeout, an error in a callback), the child is never left
+    # running and its pipes are closed.
+    with proc:
+        try:
+            if on_line is not None:
+                return _run_streaming(proc, argv, on_line, timeout, cancelled, start)
+            return _run_collecting(proc, argv, timeout, cancelled, start)
+        finally:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait()
+
+
+def _run_collecting(proc: subprocess.Popen[bytes], argv: list[str], timeout: float | None,
+                    cancelled: Callable[[], bool] | None, start: float) -> Result:
     while True:
         try:
             out, err = proc.communicate(timeout=POLL_S)
@@ -98,8 +111,11 @@ def _run_streaming(proc: subprocess.Popen[bytes], argv: list[str],
 
     def read_out() -> None:
         assert proc.stdout is not None
-        for raw in proc.stdout:
-            on_line(raw.decode("utf-8", "replace").strip())
+        for raw in proc.stdout:  # keep reading even if on_line fails, so FFmpeg never
+            try:                 # blocks on a full pipe
+                on_line(raw.decode("utf-8", "replace").strip())
+            except Exception:  # noqa: BLE001, S112 - progress is best effort
+                continue
 
     def read_err() -> None:
         assert proc.stderr is not None

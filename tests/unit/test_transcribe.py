@@ -76,3 +76,30 @@ def test_the_cpu_setting_keeps_whisper_off_the_gpu(monkeypatch: pytest.MonkeyPat
     w._load()
     w._load()  # loaded once per change, not on every call
     assert loaded == ["cuda", "cpu"]
+
+
+def test_the_model_is_unloaded_even_after_a_cancel(monkeypatch: pytest.MonkeyPatch,
+                                                   tmp_path: Path) -> None:
+    """A cancelled or failed transcription must not keep ~1 GB loaded until FVS closes."""
+
+    class Seg:
+        start, end, text, words = 0.0, 1.0, "hi", []
+
+    class FakeModel:
+        def __init__(self, path: str, *, device: str, compute_type: str) -> None:
+            pass
+
+        def transcribe(self, audio: object, **kw: object) -> tuple:
+            info = type("Info", (), {"language": "en", "language_probability": 1.0})
+            return iter([Seg(), Seg()]), info
+
+    monkeypatch.setattr(transcribe, "best_device", lambda: CPU)
+    monkeypatch.setattr(transcribe, "decode_pcm", lambda *a, **k: [0.0])
+    monkeypatch.setattr(faster_whisper, "WhisperModel", FakeModel)
+    w = Whisper(tmp_path, idle_unload_s=0.05)
+    monkeypatch.setattr(w, "model_path", lambda: tmp_path)
+    with pytest.raises(transcribe.JobCancelled):
+        w.transcribe(tmp_path / "a.wav", cancelled=lambda: True)
+    assert w._model is not None and w._timer is not None  # loaded, unload scheduled
+    w._timer.join(2)
+    assert w._model is None and w._timer is None

@@ -1,6 +1,6 @@
 // What is happening: counts by state, every project, Claude's activity, running jobs,
 // and what needs the creator (REV-1, REV-2, REV-5).
-import { useLive, type Overview, type ProjectRow, type State } from "../api";
+import { useLive, WITH_PROGRESS, type Overview, type ProjectRow, type State } from "../api";
 import { clock, day, ErrorNote, Link, n, OpenFolder, StateChip } from "../ui";
 
 const TONE: Partial<Record<State, string>> = {
@@ -9,7 +9,7 @@ const TONE: Partial<Record<State, string>> = {
 };
 
 export function Dashboard({ overview }: { overview: Overview | null }) {
-  const { data, error } = useLive<{ items: ProjectRow[] }>("/api/projects");
+  const { data, error } = useLive<{ items: ProjectRow[] }>("/api/projects", WITH_PROGRESS);
   const rows = data?.items ?? [];
   const byId = new Map(rows.map((r) => [r.id, r]));
   const attention = rows.filter((r) => r.failed || r.state === "changes_requested");

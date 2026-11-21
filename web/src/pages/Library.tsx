@@ -1,6 +1,6 @@
 // Read-only lists of the templates and imported assets Claude can use.
 import { useState } from "react";
-import { useLive } from "../api";
+import { ONCE, useLive } from "../api";
 import { ErrorNote } from "../ui";
 
 interface Templates {
@@ -9,7 +9,7 @@ interface Templates {
 }
 
 export function Templates() {
-  const { data, error } = useLive<Templates>("/api/templates");
+  const { data, error } = useLive<Templates>("/api/templates", ONCE);
   return (
     <main className="narrow">
       <div className="stack-s">

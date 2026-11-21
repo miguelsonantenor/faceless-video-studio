@@ -170,3 +170,20 @@ def test_stopping_mid_job_leaves_it_for_recovery(home: Path) -> None:
                      workspace=core.config.folders.expanded().workspace)
     again.recover()
     assert (again.get(job["id"])["state"], again.get(job["id"])["attempt"]) == ("queued", 2)
+
+
+def test_idle_workers_sleep_instead_of_polling(running: Core,
+                                               monkeypatch: pytest.MonkeyPatch) -> None:
+    """An idle core must not open a database write every second per worker."""
+    claims: list[float] = []
+    real = running.jobs._claim
+
+    def counting() -> dict | None:
+        claims.append(time.monotonic())
+        return real()
+
+    monkeypatch.setattr(running.jobs, "_claim", counting)
+    time.sleep(2.5)  # long enough for the old 1 s polling to show up several times
+    assert len(claims) <= running.jobs.n_workers  # at most one late wake-up each
+    job = running.jobs.submit("echo", {"x": 1})  # and a new job still starts at once
+    wait_for(lambda: _state(running, job["id"]) == "done", timeout=5)

@@ -27,6 +27,9 @@ from fvs.timeutil import now_iso
 
 MAX_ATTEMPTS = 2  # the first run plus one re-queue after a crash
 ACTIVE_STATES = ("queued", "running")
+# Idle workers sleep until a job is submitted; this is only a safety net, so an idle core
+# does not touch the database every second.
+IDLE_CHECK_S = 60.0
 log = get_logger("fvs.jobs")
 
 
@@ -118,6 +121,7 @@ class JobQueue:
         self.n_workers = max(1, workers)
         self._handlers: dict[str, Handler] = {}
         self._wake = threading.Condition()
+        self._submitted = 0  # counts submits, so a worker never misses a wake-up
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
         self._cancel_events: dict[str, threading.Event] = {}
@@ -231,6 +235,7 @@ class JobQueue:
         job = public_job(row)
         self.bus.publish({"type": "job", "job": job})
         with self._wake:
+            self._submitted += 1
             self._wake.notify()
         return job
 
@@ -299,10 +304,14 @@ class JobQueue:
 
     def _worker(self) -> None:
         while not self._stop.is_set():
+            with self._wake:
+                seen = self._submitted  # read before claiming: a submit after it wakes us
             row = self._claim()
             if row is None:
                 with self._wake:
-                    self._wake.wait(timeout=1.0)
+                    self._wake.wait_for(
+                        lambda seen=seen: self._submitted != seen or self._stop.is_set(),
+                        timeout=IDLE_CHECK_S)
                 continue
             self._run(row)
 

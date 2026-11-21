@@ -1,7 +1,7 @@
 // Settings (REV-4): the ElevenLabs key and budget, voices, connecting Claude, folders,
 // export, video defaults and the system check. The key is never shown in full.
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, ApiError, useLive, type Overview, type SettingsPayload } from "../api";
+import { api, ApiError, ONCE, useLive, type Overview, type SettingsPayload } from "../api";
 import { day, ErrorNote, Mark, n, OpenFolder, Toast } from "../ui";
 
 type Values = Record<string, string>;
@@ -13,7 +13,7 @@ interface Profile {
 }
 
 export function Settings({ overview }: { overview: Overview | null }) {
-  const { data, error, reload } = useLive<SettingsPayload>("/api/settings");
+  const { data, error, reload } = useLive<SettingsPayload>("/api/settings", ["settings_changed"]);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
   const saved = (msg: string) => { setToast(msg); reload(); };
@@ -157,7 +157,7 @@ function ModelSelect({ value, onChange, models, id }: { value: string;
 
 function Voices({ onSaved }: { onSaved: (m: string) => void }) {
   const { data, reload } = useLive<{ items: Profile[] }>("/api/voices");
-  const { data: models, error: modelsError } = useLive<{ items: Model[] }>("/api/voice-models");
+  const { data: models, error: modelsError } = useLive<{ items: Model[] }>("/api/voice-models", ONCE);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ alias: "", voice_id: "", model_id: "eleven_multilingual_v2",
     speed: "1.0", language: "en" });
@@ -250,7 +250,7 @@ interface Desktop {
 
 function ConnectClaude({ data, onSaved }: { data: SettingsPayload;
   onSaved: (m: string) => void }) {
-  const { data: desktop, reload } = useLive<Desktop>("/api/claude-desktop");
+  const { data: desktop, reload } = useLive<Desktop>("/api/claude-desktop", ONCE);
   const action = useAction();
   const config = desktop ? JSON.stringify(desktop.config, null, 2) : "";
 
@@ -372,7 +372,7 @@ interface InspirationSet { name: string; folder: string; videos: InspirationVide
 
 function InspirationSets({ onSaved }: { onSaved: (m: string) => void }) {
   const { data, error, reload } = useLive<{ folder: string; default: string;
-    sets: InspirationSet[] }>("/api/inspiration");
+    sets: InspirationSet[] }>("/api/inspiration", ONCE);
   const action = useAction();
   const sets = data?.sets.filter((s) => s.videos.length) ?? [];
 
@@ -443,7 +443,7 @@ interface Hardware { gpu_encoder: string | null; whisper: string; device: "gpu" 
 
 function Performance({ data, onSaved }: { data: SettingsPayload;
   onSaved: (m: string) => void }) {
-  const { data: hw, reload } = useLive<Hardware>("/api/hardware");
+  const { data: hw, reload } = useLive<Hardware>("/api/hardware", ["settings_changed"]);
   const action = useAction();
   const device = String(data.settings["performance.device"]);
   const pick = (value: string) => action.run(async () => {
@@ -489,7 +489,7 @@ function VideoDefaults({ data, onSaved }: { data: SettingsPayload;
     String(data.settings[k])]));
   const [v, setV] = useState<Values>(initial);
   const { data: templates } = useLive<{ items: { name: string; description: string }[] }>(
-    "/api/templates");
+    "/api/templates", ONCE);
   const action = useAction();
   // Live events reload the settings often; only a real change to these values (say, Claude
   // changed one) replaces what the creator is typing.
@@ -572,7 +572,7 @@ interface Doctor { status: string; checks: { name: string; status: "ok" | "warn"
 
 function SystemCheck() {
   const [online, setOnline] = useState(false);
-  const { data, error, reload } = useLive<Doctor>(`/api/doctor?online=${online}`);
+  const { data, error, reload } = useLive<Doctor>(`/api/doctor?online=${online}`, ONCE);
   return (
     <section className="card pad-l" aria-labelledby="sc-h">
       <div className="section-head">

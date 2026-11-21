@@ -83,28 +83,30 @@ class ElevenLabs:
             raise FvsError(ErrorCode.VOICE_AUTH, "No ElevenLabs API key is saved.", KEY_FIX)
         return {"xi-api-key": key}
 
-    def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+    def _request(self, method: str, url: str, *, retry: bool = True,
+                 **kwargs: Any) -> httpx.Response:
         headers = self._headers()
-        for attempt in range(len(RETRY_WAITS_S) + 1):
+        waits = RETRY_WAITS_S if retry else ()
+        for attempt in range(len(waits) + 1):
             try:
                 with self._slots:
                     resp = self._client.request(method, url, headers=headers, **kwargs)
             except httpx.TransportError as exc:
-                if attempt == len(RETRY_WAITS_S):
+                if attempt == len(waits):
                     raise FvsError(ErrorCode.VOICE_BUSY,
                                    f"ElevenLabs could not be reached ({type(exc).__name__}).",
                                    "Check the internet connection, then try again.") from None
-                self._sleep(RETRY_WAITS_S[attempt])
+                self._sleep(waits[attempt])
                 continue
             if resp.status_code != 429 and resp.status_code < 500:
                 return _raise_for_error(resp)
-            if attempt == len(RETRY_WAITS_S):
+            if attempt == len(waits):
                 break
-            self._sleep(_retry_after(resp) or RETRY_WAITS_S[attempt])
+            self._sleep(_retry_after(resp) or waits[attempt])
         wait = _retry_after(resp) or 30
         raise FvsError(ErrorCode.VOICE_BUSY,
                        f"ElevenLabs is busy ({_reason(resp)}); it still refused after "
-                       f"{len(RETRY_WAITS_S)} retries.",
+                       f"{len(waits)} retries.",
                        f"Try again in about {wait:.0f} seconds.")
 
     def speak(self, *, voice_id: str, model_id: str, text: str,
@@ -128,7 +130,7 @@ class ElevenLabs:
         """The text-to-speech models this account can use, as ElevenLabs lists them, so
         a new model (v3, and later ones) can be picked without an FVS update."""
         out = []
-        for m in self._request("GET", "/v1/models").json():
+        for m in self._request("GET", "/v1/models", retry=False).json():
             if not m.get("can_do_text_to_speech", True):
                 continue
             out.append({"model_id": m["model_id"], "name": m.get("name") or m["model_id"],
@@ -137,7 +139,8 @@ class ElevenLabs:
         return out
 
     def quota(self) -> Quota:
-        data = self._request("GET", "/v1/user/subscription").json()
+        # Shown on screens, never worth a 14 s retry wait: one try, then "unavailable".
+        data = self._request("GET", "/v1/user/subscription", retry=False).json()
         reset = data.get("next_character_count_reset_unix")
         return Quota(limit=int(data.get("character_limit", 0)),
                      used=int(data.get("character_count", 0)),

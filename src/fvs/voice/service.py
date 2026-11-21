@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
+import time
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -41,6 +43,7 @@ from fvs.voice.timing import caption_words
 SAMPLE_RATE = 48_000
 STITCH_MAX_AGE = timedelta(hours=2)  # ElevenLabs only stitches to recent requests
 STITCH_COUNT = 3
+QUOTA_KEEP_S = 60.0
 
 
 def _fresh(created_at: str) -> bool:
@@ -62,6 +65,8 @@ class VoiceService:
         self.settings = settings
         self.activity = activity
         self.cache_dir = workspace / "voice"
+        self._quota: tuple[float, dict[str, Any]] | None = None  # (when, status)
+        self._quota_lock = threading.Lock()
         jobs.register("voice", self.run_job)
 
     # ---- planning --------------------------------------------------------------------
@@ -90,12 +95,22 @@ class VoiceService:
         timings = json.loads(Path(row["timings_path"]).read_text(encoding="utf-8"))
         return dict(row) | {"timings": timings} if timings["cache_keys"] == keys else None
 
-    def quota_status(self) -> dict[str, Any]:
-        try:
-            q = self.client.quota()
-        except FvsError as exc:
-            return {"available": False, "reason": exc.message, "fix": exc.fix}
-        return {"available": True, "limit": q.limit, "left": q.left, "resets_at": q.resets_at}
+    def quota_status(self, *, fresh: bool = False) -> dict[str, Any]:
+        """The ElevenLabs quota left. The web app shows it on every screen, so the answer
+        is kept for QUOTA_KEEP_S; ``fresh`` asks ElevenLabs now (before spending)."""
+        with self._quota_lock:
+            kept = self._quota
+            if not fresh and kept is not None and time.monotonic() - kept[0] < QUOTA_KEEP_S:
+                return kept[1]
+            try:
+                q = self.client.quota()
+            except FvsError as exc:
+                status = {"available": False, "reason": exc.message, "fix": exc.fix}
+            else:
+                status = {"available": True, "limit": q.limit, "left": q.left,
+                          "resets_at": q.resets_at}
+            self._quota = (time.monotonic(), status)
+            return status
 
     @staticmethod
     def _over_budget_error(to_bill: int, budget: dict[str, Any], *, partial: bool) -> FvsError:
@@ -138,7 +153,7 @@ class VoiceService:
                 "chars_to_bill": 0 if existing else to_bill,
                 "chars_reused": reused, "up_to_date": existing is not None,
                 "over_budget": not existing and to_bill > budget["left"],
-                "budget": budget, "quota": self.quota_status(),
+                "budget": budget, "quota": self.quota_status(fresh=True),
                 "summary": (f"The voiceover for {ref} is up to date; nothing to bill."
                             if existing else
                             f"{ref}: {len(missing)} of {len(sentences)} sentences to make, "
@@ -325,6 +340,6 @@ class VoiceService:
             "sentences": [{"i": s["i"], "start": s["start"], "end": s["end"]}
                           for s in timings["sentences"]],
             "chars_billed": billed, "chars_reused": reused,
-            "budget": self.budget.status(), "quota": self.quota_status(),
+            "budget": self.budget.status(), "quota": self.quota_status(fresh=True),
             "state": proj["state"], "summary": summary,
         }

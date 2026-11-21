@@ -30,26 +30,47 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 
 // ---- live updates ---------------------------------------------------------------------
 
+export type LiveEvent = "activity" | "job" | "job_progress" | "settings_changed";
+/** Reload on real changes (the default). */
+const CHANGES: LiveEvent[] = ["activity", "job", "settings_changed"];
+/** Also follow render and voice progress, for screens that show it. */
+export const WITH_PROGRESS: LiveEvent[] = [...CHANGES, "job_progress"];
+/** Load once; reload only when asked (reload()). */
+export const ONCE: LiveEvent[] = [];
+
 type Listener = () => void;
-const listeners = new Set<Listener>();
+const listeners = new Map<Listener, ReadonlySet<LiveEvent>>();
+const due = new Set<Listener>();
 let source: EventSource | null = null;
 let timer: number | undefined;
+const THROTTLE_MS = 1000;
+
+function flush() {
+  timer = undefined;
+  if (document.visibilityState === "hidden") return; // caught up when the tab shows again
+  const now = [...due];
+  due.clear();
+  now.forEach((l) => l());
+}
 
 function connect() {
   if (source) return;
   source = new EventSource("/api/events");
-  const changed = () => {
-    // Bursts of events (job progress) refresh the screen at most a few times a second.
-    window.clearTimeout(timer);
-    timer = window.setTimeout(() => listeners.forEach((l) => l()), 250);
+  // Each screen reloads only for the events it shows, at most once a second, and not at
+  // all while its tab is hidden: a render's progress must not turn into a stream of
+  // requests (each of which used to ask ElevenLabs for the quota).
+  const changed = (type: LiveEvent) => () => {
+    listeners.forEach((on, l) => { if (on.has(type)) due.add(l); });
+    if (due.size && timer === undefined) timer = window.setTimeout(flush, THROTTLE_MS);
   };
-  for (const type of ["activity", "job", "job_progress", "settings_changed"]) {
-    source.addEventListener(type, changed);
-  }
+  for (const type of WITH_PROGRESS) source.addEventListener(type, changed(type));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && due.size && timer === undefined) flush();
+  });
 }
 
-/** Load `path`, and load it again whenever the core reports a change. */
-export function useLive<T>(path: string | null) {
+/** Load `path`, and load it again when the core reports one of the `on` events. */
+export function useLive<T>(path: string | null, on: LiveEvent[] = CHANGES) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const current = useRef(path);
@@ -68,15 +89,17 @@ export function useLive<T>(path: string | null) {
     }
   }, [path]);
 
+  const events = on.join(",");
   useEffect(() => {
     setData(null);
     load();
     connect();
-    listeners.add(load);
+    listeners.set(load, new Set(events ? events.split(",") as LiveEvent[] : []));
     return () => {
       listeners.delete(load);
+      due.delete(load);
     };
-  }, [load]);
+  }, [load, events]);
 
   return { data, error, reload: load };
 }

@@ -1,4 +1,4 @@
-import { useLive, type Overview } from "./api";
+import { useLive, WITH_PROGRESS, type Overview } from "./api";
 import { Dashboard } from "./pages/Dashboard";
 import { Assets, Templates } from "./pages/Library";
 import { Project } from "./pages/Project";
@@ -13,7 +13,7 @@ const NAV = [
 
 export function App() {
   const path = usePath();
-  const { data: overview, error } = useLive<Overview>("/api/overview");
+  const { data: overview, error } = useLive<Overview>("/api/overview", WITH_PROGRESS);
   const waiting = overview?.counts.in_review ?? 0;
   const section = "/" + (path.split("/")[1] ?? "");
   const project = path.match(/^\/projects\/([^/]+)$/);

@@ -136,20 +136,25 @@ def add_mcp_routes(app: FastAPI, core: Core) -> None:
         task = asyncio.create_task(server.handle(msg, progress))
 
         async def stream() -> AsyncIterator[str]:
-            while True:
-                getter = asyncio.create_task(queue.get())
-                done, _ = await asyncio.wait({getter, task},
-                                             return_when=asyncio.FIRST_COMPLETED)
-                if getter in done:
-                    yield _sse(getter.result())
-                    continue
-                getter.cancel()
-                while not queue.empty():
-                    yield _sse(queue.get_nowait())
-                reply = task.result()
-                if reply is not None:
-                    yield _sse(reply)
-                return
+            getter: asyncio.Task[dict[str, Any]] | None = None
+            try:
+                while True:
+                    getter = asyncio.create_task(queue.get())
+                    done, _ = await asyncio.wait({getter, task},
+                                                 return_when=asyncio.FIRST_COMPLETED)
+                    if getter in done:
+                        yield _sse(getter.result())
+                        continue
+                    getter.cancel()
+                    while not queue.empty():
+                        yield _sse(queue.get_nowait())
+                    reply = task.result()
+                    if reply is not None:
+                        yield _sse(reply)
+                    return
+            finally:  # the client went away mid-stream: leave no task waiting forever
+                if getter is not None and not getter.done():
+                    getter.cancel()
 
         return StreamingResponse(stream(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache"})

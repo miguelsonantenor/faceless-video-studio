@@ -263,7 +263,7 @@ def add_web_routes(app: FastAPI, core: Core) -> None:  # noqa: C901 - one route 
         save_config(core.config, core.home)
         core.activity.add("Replaced the ElevenLabs key.", source="creator")
         return {"ok": True, "key_last4": core.config.api_key_last4,
-                "quota": await run(core.voice.quota_status)}
+                "quota": await run(core.voice.quota_status, fresh=True)}
 
     # ---- connecting Claude -----------------------------------------------------------
 

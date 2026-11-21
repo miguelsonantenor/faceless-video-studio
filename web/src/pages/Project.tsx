@@ -1,14 +1,14 @@
 // One project: the render with the safe zone, the storyboard, what Claude checked, the 8
 // quality checks, script versions, voice and edit, and the decision (REV-2, REV-3, PRJ-5).
 import { useCallback, useState } from "react";
-import { api, ApiError, useLive, type ProjectDetail, type SettingsPayload } from "../api";
+import { api, ApiError, useLive, WITH_PROGRESS, type ProjectDetail, type SettingsPayload } from "../api";
 import { Checks, clock, day, ErrorNote, Link, n, OpenFolder, Player, secs, StateChip,
   Toast } from "../ui";
 import { decide, type Decision } from "./decide";
 
 export function Project({ ref_ }: { ref_: string }) {
-  const { data, error, reload } = useLive<ProjectDetail>(`/api/projects/${ref_}`);
-  const { data: settings } = useLive<SettingsPayload>("/api/settings");
+  const { data, error, reload } = useLive<ProjectDetail>(`/api/projects/${ref_}`, WITH_PROGRESS);
+  const { data: settings } = useLive<SettingsPayload>("/api/settings", ["settings_changed"]);
   const [showSafe, setShowSafe] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const clearToast = useCallback(() => setToast(null), []);
